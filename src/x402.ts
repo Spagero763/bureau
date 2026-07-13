@@ -27,6 +27,21 @@ export function buildPaymentMiddleware() {
     },
   });
 
+  // Log verify/settle outcomes so payment failures are diagnosable.
+  const origVerify = facilitator.verify.bind(facilitator);
+  const origSettle = facilitator.settle.bind(facilitator);
+  facilitator.verify = async (payload, requirements) => {
+    const r = await origVerify(payload, requirements);
+    if (!r.isValid) console.warn("[x402] verify failed:", JSON.stringify(r));
+    return r;
+  };
+  facilitator.settle = async (payload, requirements) => {
+    const r = await origSettle(payload, requirements);
+    if (!r.success) console.warn("[x402] settle failed:", JSON.stringify(r));
+    else console.log(`[x402] settled ${requirements.amount} to ${requirements.payTo} tx ${r.transaction}`);
+    return r;
+  };
+
   const server = new x402ResourceServer(facilitator).register(NETWORK, new ExactEvmScheme());
 
   const p = config.prices;

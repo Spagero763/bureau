@@ -1,0 +1,51 @@
+services:
+  - type: web
+    name: bureau
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npm run build
+    startCommand: node dist/src/index.js
+    healthCheckPath: /healthz
+    envVars:
+      - key: AGENT_ADDRESS
+        sync: false
+      - key: AGENT_PRIVATE_KEY
+        sync: false
+      - key: PAYER_PRIVATE_KEY
+        sync: false
+      - key: X402_API_KEY
+        sync: false
+      - key: ATTRIBUTION_TAG
+        sync: false
+      - key: PUBLIC_BASE_URL
+        sync: false
+      - key: ADMIN_TOKEN
+        sync: false
+      - key: FEE_CURRENCY
+        value: "0x765DE816845861e75A25fCA122bb6898B8B1282a"
+      - key: AGENT_NAME
+        value: "Bureau"
+      - key: DESK_ENABLED
+        value: "1"
+      - key: DESK_BASE
+        value: "USDm"
+      - key: DESK_PAIRS
+        value: "EURm,BRLm,KESm,PHPm,GHSm"
+      - key: DESK_TRADE_USD
+        value: "4"
+      - key: DESK_INTERVAL_SEC
+        value: "240"
+      - key: DESK_MIN_EDGE_BPS
+        value: "10"
+      - key: DESK_ROTATION
+        value: "1"
+      - key: DESK_MAX_ROTATION_COST_BPS
+        value: "20"
+      - key: DESK_DAILY_COST_CAP_USD
+        value: "0.4"
+      - key: DESK_SLIPPAGE
+        value: "0.3"
+      - key: SELF_BUY_ENABLED
+        value: "1"
+      - key: SELF_BUY_INTERVAL_SEC
+        value: "180"

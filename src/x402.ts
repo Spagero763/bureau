@@ -31,15 +31,25 @@ export function buildPaymentMiddleware() {
   const origVerify = facilitator.verify.bind(facilitator);
   const origSettle = facilitator.settle.bind(facilitator);
   facilitator.verify = async (payload, requirements) => {
-    const r = await origVerify(payload, requirements);
-    if (!r.isValid) console.warn("[x402] verify failed:", JSON.stringify(r));
-    return r;
+    try {
+      const r = await origVerify(payload, requirements);
+      if (!r.isValid) console.warn("[x402] verify failed:", JSON.stringify(r));
+      return r;
+    } catch (e) {
+      console.error("[x402] verify THREW:", e instanceof Error ? e.message : e);
+      throw e;
+    }
   };
   facilitator.settle = async (payload, requirements) => {
-    const r = await origSettle(payload, requirements);
-    if (!r.success) console.warn("[x402] settle failed:", JSON.stringify(r));
-    else console.log(`[x402] settled ${requirements.amount} to ${requirements.payTo} tx ${r.transaction}`);
-    return r;
+    try {
+      const r = await origSettle(payload, requirements);
+      if (!r.success) console.warn("[x402] settle failed:", JSON.stringify(r));
+      else console.log(`[x402] settled ${requirements.amount} to ${requirements.payTo} tx ${r.transaction}`);
+      return r;
+    } catch (e) {
+      console.error("[x402] settle THREW:", e instanceof Error ? e.message : e);
+      throw e;
+    }
   };
 
   const server = new x402ResourceServer(facilitator).register(NETWORK, new ExactEvmScheme());

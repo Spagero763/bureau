@@ -33,6 +33,16 @@ export function buildPaymentMiddleware() {
   const g = config.game;
 
   const routes: RoutesConfig = {
+    "GET /v1/fx/rates": {
+      accepts: priceOf(p.lookup),
+      description: "Live onchain FX table: Mento implied USD price per Celo stable vs real-world reference, deviation in bps",
+      mimeType: "application/json",
+    },
+    "GET /v1/fx/quote": {
+      accepts: priceOf(p.lookup),
+      description: "Executable Mento quote for any Celo stable pair (from, to, amount)",
+      mimeType: "application/json",
+    },
     "GET /v1/rates": {
       accepts: priceOf(p.micro),
       description: "Spot USD prices for CELO, USDC, USDT, ETH, BTC",

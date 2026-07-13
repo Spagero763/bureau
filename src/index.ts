@@ -3,7 +3,9 @@ import { config } from "./config.js";
 import { buildPaymentMiddleware } from "./x402.js";
 import { registerCatalogRoutes } from "./routes/catalog.js";
 import { registerDataRoutes } from "./routes/data.js";
+import { registerFxRoutes } from "./routes/fx.js";
 import { gamePrecheck, registerGameRoutes } from "./routes/game.js";
+import { startDesk } from "./desk/engine.js";
 
 const app = express();
 app.use(express.json());
@@ -23,11 +25,16 @@ if (config.devUnpaid) {
 }
 
 // Paid handlers (only reached once payment has settled).
+// Note: /v1/desk and /v1/desk/pause inside fx routes are free/admin and are
+// not in the paywall route table, so the middleware passes them through.
 registerDataRoutes(app);
+registerFxRoutes(app);
 registerGameRoutes(app);
 
 app.listen(config.port, () => {
   console.log(`${config.agentName} listening on :${config.port}`);
   console.log(`network eip155:42220, payTo ${config.agentAddress}`);
   console.log(`facilitator ${config.facilitatorUrl}${config.x402ApiKey ? "" : " (no API key set: settlement will fail)"}`);
+  console.log(`attribution ${config.attributionTag || "(no tag set: transactions will NOT be attributed)"}`);
+  startDesk();
 });

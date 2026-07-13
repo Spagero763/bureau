@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Bureau — autonomous FX desk on Celo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --surface: #141413;
+    --panel: #1d1d1b;
+    --line: #2e2e2b;
+    --ink: #f5f4ef;
+    --ink-2: #b8b7ac;
+    --ink-3: #7d7c73;
+    --accent: #3987e5;
+    --good: #35b768;
+    --warn: #fab219;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    background: var(--surface);
+    color: var(--ink);
+    font-family: "Space Grotesk", system-ui, sans-serif;
+    min-height: 100vh;
+    padding: 40px clamp(16px, 5vw, 64px);
+  }
+  a { color: var(--accent); text-decoration: none; }
+  header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 14px; margin-bottom: 8px; }
+  h1 { font-size: 30px; font-weight: 700; letter-spacing: 0.5px; }
+  .sub { color: var(--ink-2); font-size: 15px; max-width: 720px; line-height: 1.5; }
+  .pulse { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--good); margin-right: 7px; animation: pulse 2s infinite; vertical-align: 1px; }
+  .pulse.off { background: var(--ink-3); animation: none; }
+  @keyframes pulse { 0% {opacity: 1} 50% {opacity: .35} 100% {opacity: 1} }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin: 28px 0; }
+  .tile { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; }
+  .tile .label { color: var(--ink-3); font-size: 12px; text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 8px; }
+  .tile .value { font-family: "JetBrains Mono", monospace; font-size: 26px; font-weight: 600; }
+  .tile .hint { color: var(--ink-3); font-size: 12px; margin-top: 6px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+  section { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 20px; overflow-x: auto; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 1.4px; color: var(--ink-2); margin-bottom: 14px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th { text-align: left; color: var(--ink-3); font-weight: 500; font-size: 12px; padding: 6px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  td { padding: 8px 10px; border-bottom: 1px solid var(--line); font-family: "JetBrains Mono", monospace; font-size: 13px; white-space: nowrap; }
+  tr:last-child td { border-bottom: none; }
+  td.sym, th:first-child { font-family: "Space Grotesk", sans-serif; font-weight: 500; }
+  .chip { display: inline-block; font-family: "Space Grotesk", sans-serif; font-size: 11px; padding: 2px 8px; border-radius: 20px; border: 1px solid var(--line); color: var(--ink-2); }
+  .chip.edge { border-color: var(--good); color: var(--good); }
+  .muted { color: var(--ink-3); }
+  footer { margin-top: 28px; color: var(--ink-3); font-size: 13px; line-height: 1.7; }
+  footer code { font-family: "JetBrains Mono", monospace; background: var(--panel); border: 1px solid var(--line); padding: 2px 7px; border-radius: 6px; font-size: 12px; }
+  .catalog td:last-child { font-family: "Space Grotesk", sans-serif; color: var(--ink-2); white-space: normal; min-width: 220px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>BUREAU</h1>
+  <span class="sub"><span id="pulse" class="pulse off"></span><span id="status">connecting…</span></span>
+</header>
+<p class="sub">An autonomous FX desk on Celo. It trades Mento stablecoins against real-world FX and sells its market data per-call over x402, settled in USDC. Every transaction is onchain and attributed.</p>
+
+<div class="tiles">
+  <div class="tile"><div class="label">Total volume</div><div class="value" id="vol">–</div><div class="hint">tagged onchain, USD</div></div>
+  <div class="tile"><div class="label">Trades</div><div class="value" id="trades">–</div><div class="hint">since desk start</div></div>
+  <div class="tile"><div class="label">Volume today</div><div class="value" id="dayvol">–</div><div class="hint">UTC day</div></div>
+  <div class="tile"><div class="label">Cost today</div><div class="value" id="cost">–</div><div class="hint" id="costcap">spread + fees, capped</div></div>
+</div>
+
+<div class="grid">
+  <section>
+    <h2>Onchain FX vs reference <span class="muted">(delayed preview, precise feed is paid)</span></h2>
+    <table>
+      <thead><tr><th>Stable</th><th>Currency</th><th>Onchain USD</th><th>Reference USD</th></tr></thead>
+      <tbody id="fx"><tr><td class="muted" colspan="4">loading…</td></tr></tbody>
+    </table>
+  </section>
+  <section>
+    <h2>Trade log</h2>
+    <table>
+      <thead><tr><th>Time</th><th>Pair</th><th>Size</th><th>Edge</th><th>Kind</th><th>Tx</th></tr></thead>
+      <tbody id="log"><tr><td class="muted" colspan="6">no trades yet</td></tr></tbody>
+    </table>
+  </section>
+</div>
+
+<section style="margin-top:14px">
+  <h2>Pay-per-call API <span class="muted">(x402, USDC on Celo)</span></h2>
+  <table class="catalog">
+    <thead><tr><th>Endpoint</th><th>Price</th><th>What you get</th></tr></thead>
+    <tbody id="cat"><tr><td class="muted" colspan="3">loading…</td></tr></tbody>
+  </table>
+</section>
+
+<footer>
+  Any x402 client pays in one retry: request an endpoint, sign the USDC authorization from the 402 response, request again. Gasless for the payer.<br />
+  Machine catalog: <code>GET /v1/catalog</code> &nbsp;·&nbsp; Desk stats: <code>GET /v1/desk</code> &nbsp;·&nbsp; <a href="https://github.com/Spagero763/bureau">github.com/Spagero763/bureau</a>
+</footer>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const fmt = (n, d = 2) => Number(n).toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
+
+  async function refreshDesk() {
+    try {
+      const s = await (await fetch("/v1/desk")).json();
+      $("vol").textContent = "$" + fmt(s.totalVolumeUsd);
+      $("trades").textContent = s.totalTrades.toLocaleString();
+      $("dayvol").textContent = "$" + fmt(s.today.volumeUsd);
+      $("cost").textContent = "$" + fmt(s.today.costUsd, 3);
+      $("costcap").textContent = "cap $" + fmt(s.today.costCapUsd) + "/day";
+      const live = s.enabled && !s.paused;
+      $("pulse").className = "pulse" + (live ? "" : " off");
+      $("status").textContent = live ? "desk live" : s.paused ? "desk paused" : "desk idle";
+      if (s.recentTrades?.length) {
+        $("log").innerHTML = s.recentTrades.map((t) => `<tr>
+          <td class="muted">${new Date(t.at).toISOString().slice(11, 19)}</td>
+          <td class="sym">${t.pair}</td>
+          <td>$${fmt(t.amountInUsd)}</td>
+          <td>${t.edgeBps > 0 ? "+" : ""}${fmt(t.edgeBps, 1)} bps</td>
+          <td><span class="chip${t.kind === "edge" ? " edge" : ""}">${t.kind === "edge" ? "▲ edge" : "↻ rotation"}</span></td>
+          <td><a href="https://celoscan.io/tx/${t.txHash}" target="_blank" rel="noopener">${t.txHash.slice(0, 10)}…</a></td>
+        </tr>`).join("");
+      }
+    } catch { $("status").textContent = "stats unavailable"; }
+  }
+
+  async function refreshFx() {
+    try {
+      const d = await (await fetch("/v1/fx/preview")).json();
+      if (d.rates?.length) {
+        $("fx").innerHTML = d.rates.map((r) => `<tr>
+          <td class="sym">${r.symbol}</td>
+          <td class="muted">${r.currency ?? "–"}</td>
+          <td>${fmt(r.onchainUsd, 4)}</td>
+          <td class="muted">${fmt(r.referenceUsd, 4)}</td>
+        </tr>`).join("");
+      }
+    } catch { /* keep last table */ }
+  }
+
+  async function loadCatalog() {
+    try {
+      const c = await (await fetch("/v1/catalog")).json();
+      $("cat").innerHTML = c.endpoints.map((e) => `<tr>
+        <td>${e.method} ${e.path}</td>
+        <td>${e.price}</td>
+        <td>${e.description}</td>
+      </tr>`).join("");
+    } catch { /* leave placeholder */ }
+  }
+
+  refreshDesk(); refreshFx(); loadCatalog();
+  setInterval(refreshDesk, 20_000);
+  setInterval(refreshFx, 60_000);
+</script>
+</body>
+</html>

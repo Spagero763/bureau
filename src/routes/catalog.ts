@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import type { Express, Request, Response } from "express";
 import { config, NETWORK, USDC, usd, ERC8004 } from "../config.js";
 
@@ -16,6 +18,10 @@ function catalog() {
       facilitator: config.facilitatorUrl,
     },
     endpoints: [
+      { method: "GET", path: "/v1/fx/rates", price: usd(p.lookup), description: "Live onchain FX table: Mento implied USD per Celo stable vs real-world reference, deviation in bps" },
+      { method: "GET", path: "/v1/fx/quote", price: usd(p.lookup), description: "Executable Mento quote for any Celo stable pair (?from=USDm&to=cEUR&amount=100)" },
+      { method: "GET", path: "/v1/fx/preview", price: "free", description: "Delayed, rounded FX preview (60s cache)" },
+      { method: "GET", path: "/v1/desk", price: "free", description: "Live desk stats: volume, trades, cost controls" },
       { method: "GET", path: "/v1/rates", price: usd(p.micro), description: "Spot USD prices for CELO, USDC, USDT, ETH, BTC (30s cache)" },
       { method: "GET", path: "/v1/gas", price: usd(p.micro), description: "Current Celo gas price and latest block base fee" },
       { method: "GET", path: "/v1/token/:address", price: usd(p.lookup), description: "ERC-20 metadata and total supply on Celo" },
@@ -37,7 +43,17 @@ function catalog() {
 export function registerCatalogRoutes(app: Express) {
   app.get("/healthz", (_req: Request, res: Response) => res.json({ ok: true }));
 
-  app.get("/", (_req: Request, res: Response) => res.json(catalog()));
+  // Dashboard for humans; machine catalog stays at /v1/catalog.
+  let dashboardHtml: string | null = null;
+  app.get("/", (req: Request, res: Response) => {
+    if (req.accepts(["html", "json"]) === "json") return res.json(catalog());
+    try {
+      dashboardHtml ??= readFileSync(join(process.cwd(), "public", "dashboard.html"), "utf8");
+      res.type("html").send(dashboardHtml);
+    } catch {
+      res.json(catalog());
+    }
+  });
   app.get("/v1/catalog", (_req: Request, res: Response) => res.json(catalog()));
 
   // ERC-8004 registration file

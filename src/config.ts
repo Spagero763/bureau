@@ -43,6 +43,23 @@ export const config = {
   // ERC-8021 attribution tag (celo_ + 12 hex chars). When set, it is appended
   // to every transaction this agent sends so activity is attributed onchain.
   attributionTag: process.env.ATTRIBUTION_TAG ?? "",
+  // Token for the pause/resume admin endpoint.
+  adminToken: process.env.ADMIN_TOKEN ?? "",
+  desk: {
+    enabled: process.env.DESK_ENABLED === "1",
+    baseSymbol: process.env.DESK_BASE ?? "USDm",
+    counterSymbols: (process.env.DESK_PAIRS ?? "EURm,BRLm,KESm,PHPm,GHSm")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean),
+    tradeUsd: num("DESK_TRADE_USD", "25"),
+    intervalSec: num("DESK_INTERVAL_SEC", "240"),
+    minEdgeBps: num("DESK_MIN_EDGE_BPS", "10"),
+    rotation: process.env.DESK_ROTATION !== "0",
+    maxRotationCostBps: num("DESK_MAX_ROTATION_COST_BPS", "20"),
+    dailyCostCapUsd: num("DESK_DAILY_COST_CAP_USD", "1.5"),
+    slippagePct: num("DESK_SLIPPAGE", "0.3"),
+  },
   port: num("PORT", "3000"),
   // DEV ONLY: skip the paywall and simulate payouts so the full flow can be
   // exercised locally without real money. Never set in production.

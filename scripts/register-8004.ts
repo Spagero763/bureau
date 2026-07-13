@@ -2,11 +2,12 @@
 // Usage: npm run register
 // Needs AGENT_PRIVATE_KEY and PUBLIC_BASE_URL in .env, plus a little CELO for gas.
 
-import { createPublicClient, createWalletClient, decodeEventLog, http } from "viem";
+import { createPublicClient, createWalletClient, decodeEventLog, encodeFunctionData, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { celo } from "viem/chains";
 import { config, ERC8004 } from "../src/config.js";
 import { identityRegistryAbi } from "../src/lib/erc8004.js";
+import { withAttribution } from "../src/lib/attribution.js";
 
 async function main() {
   if (!config.agentPrivateKey) throw new Error("AGENT_PRIVATE_KEY is not set");
@@ -31,11 +32,11 @@ async function main() {
     console.warn("  Deploy the server first so the registry points at a live file. Continuing anyway.");
   }
 
-  const hash = await wallet.writeContract({
-    address: ERC8004.identityRegistry,
-    abi: identityRegistryAbi,
-    functionName: "register",
-    args: [agentURI],
+  const hash = await wallet.sendTransaction({
+    to: ERC8004.identityRegistry,
+    data: withAttribution(
+      encodeFunctionData({ abi: identityRegistryAbi, functionName: "register", args: [agentURI] }),
+    ),
   });
   console.log(`  tx: ${hash}`);
   const receipt = await publicClient.waitForTransactionReceipt({ hash });

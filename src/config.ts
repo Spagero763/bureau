@@ -40,6 +40,9 @@ export const config = {
   facilitatorUrl: (process.env.X402_FACILITATOR_URL ?? "https://api.x402.celo.org").replace(/\/$/, ""),
   x402ApiKey: process.env.X402_API_KEY ?? "",
   celoRpc: process.env.CELO_RPC ?? "https://forno.celo.org",
+  // ERC-8021 attribution tag (celo_ + 12 hex chars). When set, it is appended
+  // to every transaction this agent sends so activity is attributed onchain.
+  attributionTag: process.env.ATTRIBUTION_TAG ?? "",
   port: num("PORT", "3000"),
   // DEV ONLY: skip the paywall and simulate payouts so the full flow can be
   // exercised locally without real money. Never set in production.

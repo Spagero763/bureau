@@ -6,6 +6,7 @@ import { registerDataRoutes } from "./routes/data.js";
 import { registerFxRoutes } from "./routes/fx.js";
 import { gamePrecheck, registerGameRoutes } from "./routes/game.js";
 import { startDesk } from "./desk/engine.js";
+import { startSelfBuy } from "./desk/selfbuy.js";
 
 const app = express();
 app.use(express.json());
@@ -37,4 +38,5 @@ app.listen(config.port, () => {
   console.log(`facilitator ${config.facilitatorUrl}${config.x402ApiKey ? "" : " (no API key set: settlement will fail)"}`);
   console.log(`attribution ${config.attributionTag || "(no tag set: transactions will NOT be attributed)"}`);
   startDesk();
+  startSelfBuy();
 });

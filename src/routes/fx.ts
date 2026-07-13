@@ -121,6 +121,7 @@ export function registerFxRoutes(app: Express) {
       startedAt: s.startedAt,
       totalVolumeUsd: Math.round(s.totalVolumeUsd * 100) / 100,
       totalTrades: s.totalTrades,
+      x402SelfBuys: s.selfBuys,
       today: {
         volumeUsd: Math.round(s.dayVolumeUsd * 100) / 100,
         costUsd: Math.round(s.dayCostUsd * 10000) / 10000,

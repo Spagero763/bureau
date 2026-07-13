@@ -23,6 +23,7 @@ export interface DeskState {
   lastCycleAt: string | null;
   lastError: string | null;
   paused: boolean;
+  selfBuys: number; // x402 purchases of our own feed
   trades: TradeRecord[]; // most recent first, capped
 }
 
@@ -44,6 +45,7 @@ function fresh(): DeskState {
     lastCycleAt: null,
     lastError: null,
     paused: false,
+    selfBuys: 0,
     trades: [],
   };
 }
@@ -100,5 +102,10 @@ export function recordTrade(t: TradeRecord, costUsd: number) {
 
 export function setPaused(paused: boolean) {
   state.paused = paused;
+  save();
+}
+
+export function recordSelfBuy() {
+  state.selfBuys += 1;
   save();
 }

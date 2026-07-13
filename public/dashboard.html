@@ -68,6 +68,7 @@
   <div class="tile"><div class="label">Trades</div><div class="value" id="trades">–</div><div class="hint">since desk start</div></div>
   <div class="tile"><div class="label">Volume today</div><div class="value" id="dayvol">–</div><div class="hint">UTC day</div></div>
   <div class="tile"><div class="label">Cost today</div><div class="value" id="cost">–</div><div class="hint" id="costcap">spread + fees, capped</div></div>
+  <div class="tile"><div class="label">x402 payments</div><div class="value" id="selfbuys">–</div><div class="hint">feed purchases settled</div></div>
 </div>
 
 <div class="grid">
@@ -112,6 +113,7 @@
       $("dayvol").textContent = "$" + fmt(s.today.volumeUsd);
       $("cost").textContent = "$" + fmt(s.today.costUsd, 3);
       $("costcap").textContent = "cap $" + fmt(s.today.costCapUsd) + "/day";
+      $("selfbuys").textContent = (s.x402SelfBuys ?? 0).toLocaleString();
       const live = s.enabled && !s.paused;
       $("pulse").className = "pulse" + (live ? "" : " off");
       $("status").textContent = live ? "desk live" : s.paused ? "desk paused" : "desk idle";

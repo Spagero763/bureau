@@ -10,3 +10,8 @@ dist/
 .claude/
 .windsurf/
 skills-lock.json
+
+# runtime state and anything key-like
+data/
+*.key
+*.pem

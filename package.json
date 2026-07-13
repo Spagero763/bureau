@@ -1,8 +1,8 @@
 {
-  "name": "kiosk",
+  "name": "bureau",
   "version": "0.1.0",
   "private": true,
-  "description": "Kiosk - an autonomous agent that sells API calls and arcade games for USDC on Celo via x402",
+  "description": "Bureau - autonomous FX desk on Celo: trades Mento stablecoins and sells market data per-call via x402, settled in USDC onchain",
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",

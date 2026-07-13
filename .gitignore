@@ -4,3 +4,9 @@ dist/
 .env.local
 *.log
 .DS_Store
+
+# local agent tooling
+.agents/
+.claude/
+.windsurf/
+skills-lock.json

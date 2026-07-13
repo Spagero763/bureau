@@ -1,0 +1,52 @@
+import { createPublicClient, createWalletClient, http, type PublicClient, type WalletClient } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
+import { celo } from "viem/chains";
+import { config } from "../config.js";
+
+export const publicClient: PublicClient = createPublicClient({
+  chain: celo,
+  transport: http(config.celoRpc),
+}) as PublicClient;
+
+let _wallet: WalletClient | null = null;
+
+export function walletClient(): WalletClient {
+  if (!config.agentPrivateKey) {
+    throw new Error("AGENT_PRIVATE_KEY is not set; payouts are disabled");
+  }
+  if (!_wallet) {
+    const account = privateKeyToAccount(config.agentPrivateKey as `0x${string}`);
+    _wallet = createWalletClient({ account, chain: celo, transport: http(config.celoRpc) });
+  }
+  return _wallet;
+}
+
+export const erc20Abi = [
+  {
+    type: "function",
+    name: "transfer",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "to", type: "address" },
+      { name: "value", type: "uint256" },
+    ],
+    outputs: [{ name: "", type: "bool" }],
+  },
+  {
+    type: "function",
+    name: "balanceOf",
+    stateMutability: "view",
+    inputs: [{ name: "owner", type: "address" }],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  { type: "function", name: "name", stateMutability: "view", inputs: [], outputs: [{ name: "", type: "string" }] },
+  { type: "function", name: "symbol", stateMutability: "view", inputs: [], outputs: [{ name: "", type: "string" }] },
+  { type: "function", name: "decimals", stateMutability: "view", inputs: [], outputs: [{ name: "", type: "uint8" }] },
+  {
+    type: "function",
+    name: "totalSupply",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+] as const;

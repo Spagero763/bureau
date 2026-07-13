@@ -8,6 +8,12 @@ export const publicClient: PublicClient = createPublicClient({
   transport: http(config.celoRpc),
 }) as PublicClient;
 
+// Pay gas in a Celo fee currency (e.g. USDm) so the agent needs no CELO.
+export function feeCurrency(): `0x${string}` | undefined {
+  const fc = process.env.FEE_CURRENCY ?? "";
+  return fc.startsWith("0x") ? (fc as `0x${string}`) : undefined;
+}
+
 let _wallet: WalletClient | null = null;
 
 export function walletClient(): WalletClient {

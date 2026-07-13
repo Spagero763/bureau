@@ -32,12 +32,16 @@ async function main() {
     console.warn("  Deploy the server first so the registry points at a live file. Continuing anyway.");
   }
 
+  const feeCurrency = (process.env.FEE_CURRENCY ?? "").startsWith("0x")
+    ? (process.env.FEE_CURRENCY as `0x${string}`)
+    : undefined;
   const hash = await wallet.sendTransaction({
     to: ERC8004.identityRegistry,
     data: withAttribution(
       encodeFunctionData({ abi: identityRegistryAbi, functionName: "register", args: [agentURI] }),
     ),
-  });
+    feeCurrency,
+  } as Parameters<typeof wallet.sendTransaction>[0]);
   console.log(`  tx: ${hash}`);
   const receipt = await publicClient.waitForTransactionReceipt({ hash });
   console.log(`  status: ${receipt.status}`);

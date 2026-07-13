@@ -19,7 +19,7 @@ const { deadlineFromMinutes } = require("@mento-protocol/mento-sdk") as {
   deadlineFromMinutes: (minutes: number) => bigint;
 };
 import { config } from "../config.js";
-import { publicClient, walletClient, erc20Abi } from "../lib/celo.js";
+import { feeCurrency, publicClient, walletClient, erc20Abi } from "../lib/celo.js";
 import { withAttribution } from "../lib/attribution.js";
 import { mento, stableTokens, quote, tokenBySymbol } from "./mento.js";
 import { currencyOfSymbol, referenceRates } from "./reference.js";
@@ -39,7 +39,8 @@ async function sendTagged(params: CallParamsLike): Promise<string> {
     value: params.value === undefined ? undefined : BigInt(params.value),
     chain: wallet.chain,
     account: wallet.account!,
-  });
+    feeCurrency: feeCurrency(),
+  } as Parameters<typeof wallet.sendTransaction>[0]);
   await publicClient.waitForTransactionReceipt({ hash, timeout: 90_000 });
   return hash;
 }

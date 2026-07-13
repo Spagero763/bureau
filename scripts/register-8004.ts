@@ -15,7 +15,9 @@ async function main() {
   const publicClient = createPublicClient({ chain: celo, transport: http(config.celoRpc) });
   const wallet = createWalletClient({ account, chain: celo, transport: http(config.celoRpc) });
 
-  const agentURI = `${config.publicBaseUrl}/.well-known/agent-card.json`;
+  // Prefer a stable AGENT_URI (e.g. a GitHub-hosted card) so the onchain
+  // identity survives hosting/tunnel URL changes.
+  const agentURI = process.env.AGENT_URI ?? `${config.publicBaseUrl}/.well-known/agent-card.json`;
   console.log(`Registering agent`);
   console.log(`  registry: ${ERC8004.identityRegistry} (Celo mainnet)`);
   console.log(`  owner:    ${account.address}`);

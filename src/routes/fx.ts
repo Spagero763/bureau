@@ -4,6 +4,7 @@ import { config } from "../config.js";
 import { quote, stableTokens, tokenBySymbol } from "../desk/mento.js";
 import { currencyOfSymbol, referenceRates } from "../desk/reference.js";
 import { deskState, setPaused } from "../desk/state.js";
+import { history, latestRates } from "../desk/history.js";
 
 function fail(res: Response, status: number, message: string) {
   res.status(status).json({ error: message });
@@ -110,6 +111,16 @@ export function registerFxRoutes(app: Express) {
     } catch (e) {
       fail(res, 502, e instanceof Error ? e.message : "preview unavailable");
     }
+  });
+
+  // FREE: sampled price history for sparklines (in-memory, resets on restart).
+  app.get("/v1/fx/history", (_req: Request, res: Response) => {
+    res.json(history());
+  });
+
+  // FREE: latest sampled market rows (faster than preview, refreshed by the sampler).
+  app.get("/v1/fx/markets", (_req: Request, res: Response) => {
+    res.json(latestRates());
   });
 
   // FREE: desk stats for the dashboard and anyone watching.

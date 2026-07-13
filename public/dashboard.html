@@ -3,161 +3,251 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Bureau — autonomous FX desk on Celo</title>
+<title>Bureau — onchain FX markets on Celo</title>
+<meta name="description" content="Live Mento stablecoin FX markets, an autonomous trading desk, and a pay-per-call API on Celo." />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
 <style>
   :root {
-    --surface: #141413;
-    --panel: #1d1d1b;
-    --line: #2e2e2b;
-    --ink: #f5f4ef;
-    --ink-2: #b8b7ac;
-    --ink-3: #7d7c73;
-    --accent: #3987e5;
-    --good: #35b768;
-    --warn: #fab219;
+    --bg: #101010; --panel: #181816; --panel-2: #1f1f1d; --line: #2b2b28;
+    --ink: #f4f3ee; --ink-2: #b4b3a8; --ink-3: #78776e;
+    --accent: #4b93e7; --up: #34c273; --down: #e66461; --warn: #f2b232;
   }
   * { box-sizing: border-box; margin: 0; }
-  body {
-    background: var(--surface);
-    color: var(--ink);
-    font-family: "Space Grotesk", system-ui, sans-serif;
-    min-height: 100vh;
-    padding: 40px clamp(16px, 5vw, 64px);
-  }
+  html { scroll-behavior: smooth; }
+  body { background: var(--bg); color: var(--ink); font-family: "Space Grotesk", system-ui, sans-serif; }
   a { color: var(--accent); text-decoration: none; }
-  header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 14px; margin-bottom: 8px; }
-  h1 { font-size: 30px; font-weight: 700; letter-spacing: 0.5px; }
-  .sub { color: var(--ink-2); font-size: 15px; max-width: 720px; line-height: 1.5; }
-  .pulse { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--good); margin-right: 7px; animation: pulse 2s infinite; vertical-align: 1px; }
+  .mono { font-family: "JetBrains Mono", monospace; }
+
+  nav { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: 22px; padding: 14px clamp(16px, 4vw, 48px); background: rgba(16,16,16,.92); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+  .brand { font-weight: 700; letter-spacing: 1px; font-size: 18px; }
+  nav .links { display: flex; gap: 18px; font-size: 14px; color: var(--ink-2); }
+  nav .links a { color: var(--ink-2); } nav .links a:hover { color: var(--ink); }
+  .pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--up); animation: pulse 2s infinite; }
   .pulse.off { background: var(--ink-3); animation: none; }
-  @keyframes pulse { 0% {opacity: 1} 50% {opacity: .35} 100% {opacity: 1} }
-  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin: 28px 0; }
-  .tile { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; }
-  .tile .label { color: var(--ink-3); font-size: 12px; text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 8px; }
-  .tile .value { font-family: "JetBrains Mono", monospace; font-size: 26px; font-weight: 600; }
-  .tile .hint { color: var(--ink-3); font-size: 12px; margin-top: 6px; }
-  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
-  section { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 20px; overflow-x: auto; }
-  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 1.4px; color: var(--ink-2); margin-bottom: 14px; }
-  table { width: 100%; border-collapse: collapse; font-size: 14px; }
-  th { text-align: left; color: var(--ink-3); font-weight: 500; font-size: 12px; padding: 6px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
-  td { padding: 8px 10px; border-bottom: 1px solid var(--line); font-family: "JetBrains Mono", monospace; font-size: 13px; white-space: nowrap; }
+  @keyframes pulse { 50% { opacity: .3 } }
+  .live { display: flex; align-items: center; gap: 8px; margin-left: auto; font-size: 13px; color: var(--ink-2); }
+
+  main { padding: 28px clamp(16px, 4vw, 48px) 60px; max-width: 1200px; margin: 0 auto; }
+  .hero { margin: 18px 0 6px; }
+  .hero h1 { font-size: clamp(22px, 3.4vw, 34px); line-height: 1.2; max-width: 780px; }
+  .hero p { color: var(--ink-2); margin-top: 10px; max-width: 720px; line-height: 1.6; font-size: 15px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+  .chip { font-size: 12px; padding: 4px 12px; border: 1px solid var(--line); border-radius: 20px; color: var(--ink-2); background: var(--panel); }
+  .chip a { color: inherit; }
+
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin: 26px 0; }
+  .tile { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; }
+  .tile .label { color: var(--ink-3); font-size: 11px; text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 7px; }
+  .tile .value { font-family: "JetBrains Mono", monospace; font-size: 24px; font-weight: 600; }
+  .tile .hint { color: var(--ink-3); font-size: 12px; margin-top: 5px; }
+
+  section { margin-top: 34px; }
+  h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 1.6px; color: var(--ink-2); margin-bottom: 4px; }
+  .sec-sub { color: var(--ink-3); font-size: 13px; margin-bottom: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 640px; }
+  th { text-align: right; color: var(--ink-3); font-weight: 500; font-size: 12px; padding: 12px 14px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th:first-child, td:first-child { text-align: left; }
+  td { text-align: right; padding: 11px 14px; border-bottom: 1px solid var(--line); font-family: "JetBrains Mono", monospace; font-size: 13px; white-space: nowrap; }
   tr:last-child td { border-bottom: none; }
-  td.sym, th:first-child { font-family: "Space Grotesk", sans-serif; font-weight: 500; }
-  .chip { display: inline-block; font-family: "Space Grotesk", sans-serif; font-size: 11px; padding: 2px 8px; border-radius: 20px; border: 1px solid var(--line); color: var(--ink-2); }
-  .chip.edge { border-color: var(--good); color: var(--good); }
-  .muted { color: var(--ink-3); }
-  footer { margin-top: 28px; color: var(--ink-3); font-size: 13px; line-height: 1.7; }
-  footer code { font-family: "JetBrains Mono", monospace; background: var(--panel); border: 1px solid var(--line); padding: 2px 7px; border-radius: 6px; font-size: 12px; }
-  .catalog td:last-child { font-family: "Space Grotesk", sans-serif; color: var(--ink-2); white-space: normal; min-width: 220px; }
+  tbody tr:hover { background: var(--panel-2); }
+  .asset { display: flex; align-items: center; gap: 10px; font-family: "Space Grotesk", sans-serif; }
+  .coin { width: 28px; height: 28px; border-radius: 50%; background: var(--panel-2); border: 1px solid var(--line); display: grid; place-items: center; font-size: 10px; font-weight: 700; color: var(--ink-2); }
+  .asset .nm { font-weight: 500; } .asset .cur { color: var(--ink-3); font-size: 12px; }
+  .dev { font-weight: 600; }
+  .dev.up { color: var(--up); } .dev.down { color: var(--down); } .dev.flat { color: var(--ink-3); }
+  .spark { width: 110px; height: 30px; }
+  .badge { display: inline-block; font-family: "Space Grotesk", sans-serif; font-size: 11px; padding: 2px 9px; border-radius: 20px; border: 1px solid var(--line); color: var(--ink-2); }
+  .badge.edge { border-color: var(--up); color: var(--up); }
+
+  .apigrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+  .api { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; }
+  .api .route { font-family: "JetBrains Mono", monospace; font-size: 13px; color: var(--ink); }
+  .api .price { float: right; color: var(--up); font-family: "JetBrains Mono", monospace; font-size: 13px; }
+  .api p { color: var(--ink-2); font-size: 13px; margin-top: 8px; line-height: 1.5; }
+  pre { background: #0c0c0b; border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: "JetBrains Mono", monospace; font-size: 12.5px; line-height: 1.6; color: var(--ink-2); }
+  pre .c { color: var(--ink-3); }
+  .copybtn { float: right; background: var(--panel-2); color: var(--ink-2); border: 1px solid var(--line); border-radius: 8px; padding: 4px 12px; font-size: 12px; cursor: pointer; font-family: "Space Grotesk", sans-serif; }
+  .copybtn:hover { color: var(--ink); }
+  footer { margin-top: 44px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--ink-3); font-size: 13px; line-height: 1.8; }
 </style>
 </head>
 <body>
-<header>
-  <h1>BUREAU</h1>
-  <span class="sub"><span id="pulse" class="pulse off"></span><span id="status">connecting…</span></span>
-</header>
-<p class="sub">An autonomous FX desk on Celo. It trades Mento stablecoins against real-world FX and sells its market data per-call over x402, settled in USDC. Every transaction is onchain and attributed.</p>
+<nav>
+  <span class="brand">BUREAU</span>
+  <div class="links">
+    <a href="#markets">Markets</a><a href="#desk">Desk</a><a href="#api">API</a><a href="#play">Play</a>
+    <a href="https://github.com/Spagero763/bureau" target="_blank" rel="noopener">GitHub</a>
+  </div>
+  <span class="live"><span id="pulse" class="pulse off"></span><span id="status">connecting…</span></span>
+</nav>
+<main>
+  <div class="hero">
+    <h1>Live FX markets for the world's currencies, onchain, traded by a robot.</h1>
+    <p>Bureau watches 14 Mento stablecoins on Celo (dollars, euros, shillings, reais, pesos and more), trades them automatically when onchain prices drift from real-world exchange rates, and sells its live data to anyone, human or AI, for fractions of a cent per call. Every number below is backed by a real blockchain transaction.</p>
+    <div class="chips">
+      <span class="chip">Agent <a href="https://celoscan.io/nft/0x8004a169fb4a3325136eb29fa0ceb6d2e539a432/9675" target="_blank" rel="noopener">ERC-8004 #9675</a></span>
+      <span class="chip mono">celo_c45e8f941f0f</span>
+      <span class="chip">Celo mainnet</span>
+      <span class="chip">pay-per-call via x402</span>
+    </div>
+  </div>
 
-<div class="tiles">
-  <div class="tile"><div class="label">Total volume</div><div class="value" id="vol">–</div><div class="hint">tagged onchain, USD</div></div>
-  <div class="tile"><div class="label">Trades</div><div class="value" id="trades">–</div><div class="hint">since desk start</div></div>
-  <div class="tile"><div class="label">Volume today</div><div class="value" id="dayvol">–</div><div class="hint">UTC day</div></div>
-  <div class="tile"><div class="label">Cost today</div><div class="value" id="cost">–</div><div class="hint" id="costcap">spread + fees, capped</div></div>
-  <div class="tile"><div class="label">x402 payments</div><div class="value" id="selfbuys">–</div><div class="hint">feed purchases settled</div></div>
-</div>
+  <div class="tiles">
+    <div class="tile"><div class="label">Desk volume</div><div class="value" id="vol">–</div><div class="hint">tagged onchain, USD</div></div>
+    <div class="tile"><div class="label">Trades</div><div class="value" id="trades">–</div><div class="hint">all onchain, see log</div></div>
+    <div class="tile"><div class="label">x402 payments</div><div class="value" id="selfbuys">–</div><div class="hint">data feed purchases</div></div>
+    <div class="tile"><div class="label">Volume today</div><div class="value" id="dayvol">–</div><div class="hint">UTC day</div></div>
+    <div class="tile"><div class="label">Cost today</div><div class="value" id="cost">–</div><div class="hint" id="costcap">hard daily cap</div></div>
+  </div>
 
-<div class="grid">
-  <section>
-    <h2>Onchain FX vs reference <span class="muted">(delayed preview, precise feed is paid)</span></h2>
-    <table>
-      <thead><tr><th>Stable</th><th>Currency</th><th>Onchain USD</th><th>Reference USD</th></tr></thead>
-      <tbody id="fx"><tr><td class="muted" colspan="4">loading…</td></tr></tbody>
-    </table>
+  <section id="markets">
+    <h2>Markets</h2>
+    <div class="sec-sub">Onchain price = what the stable actually trades at on Mento right now. Deviation = how far it drifts from the real-world rate; that drift is what the desk trades.</div>
+    <div class="card">
+      <table>
+        <thead><tr><th>Asset</th><th>Onchain price</th><th>Real-world rate</th><th>Deviation</th><th>Trend</th></tr></thead>
+        <tbody id="mkt"><tr><td class="asset">loading markets…</td><td></td><td></td><td></td><td></td></tr></tbody>
+      </table>
+    </div>
   </section>
-  <section>
-    <h2>Trade log</h2>
-    <table>
-      <thead><tr><th>Time</th><th>Pair</th><th>Size</th><th>Edge</th><th>Kind</th><th>Tx</th></tr></thead>
-      <tbody id="log"><tr><td class="muted" colspan="6">no trades yet</td></tr></tbody>
-    </table>
+
+  <section id="desk">
+    <h2>Desk</h2>
+    <div class="sec-sub">Every trade the robot makes, newest first. Click any transaction to verify it on the blockchain.</div>
+    <div class="card">
+      <table>
+        <thead><tr><th>Time (UTC)</th><th>Pair</th><th>Size</th><th>Edge</th><th>Type</th><th>Transaction</th></tr></thead>
+        <tbody id="log"><tr><td class="asset">no trades yet</td><td></td><td></td><td></td><td></td><td></td></tr></tbody>
+      </table>
+    </div>
   </section>
-</div>
 
-<section style="margin-top:14px">
-  <h2>Pay-per-call API <span class="muted">(x402, USDC on Celo)</span></h2>
-  <table class="catalog">
-    <thead><tr><th>Endpoint</th><th>Price</th><th>What you get</th></tr></thead>
-    <tbody id="cat"><tr><td class="muted" colspan="3">loading…</td></tr></tbody>
-  </table>
-</section>
+  <section id="api">
+    <h2>API — pay per call, no signup</h2>
+    <div class="sec-sub">No API keys, no accounts, no credit card. Your wallet signs a USDC micro-payment per request (gasless). Works for humans, scripts, and AI agents.</div>
+    <div class="apigrid" id="apicards"></div>
+    <div style="margin-top:14px">
+      <button class="copybtn" onclick="copySnippet()">Copy</button>
+      <pre id="snippet"><span class="c">// pay for any Bureau endpoint in ~10 lines (USDC on Celo, gasless)</span>
+import { privateKeyToAccount } from "viem/accounts";
+import { wrapFetchWithPayment, x402Client } from "@x402/fetch";
+import { ExactEvmScheme } from "@x402/evm/exact/client";
 
-<footer>
-  Any x402 client pays in one retry: request an endpoint, sign the USDC authorization from the 402 response, request again. Gasless for the payer.<br />
-  Machine catalog: <code>GET /v1/catalog</code> &nbsp;·&nbsp; Desk stats: <code>GET /v1/desk</code> &nbsp;·&nbsp; <a href="https://github.com/Spagero763/bureau">github.com/Spagero763/bureau</a>
-</footer>
+const account = privateKeyToAccount(process.env.PK);
+const client = new x402Client().register("eip155:42220", new ExactEvmScheme(account));
+const payFetch = wrapFetchWithPayment(fetch, client);
+
+const res = await payFetch("BASE_URL/v1/fx/rates");
+console.log(await res.json());</pre>
+    </div>
+  </section>
+
+  <section id="play">
+    <h2>Play the desk</h2>
+    <div class="sec-sub">Beat Bureau at noughts &amp; crosses. Stake $0.10 (win pays 1.5x) or $0.25 hard mode (win pays 3x). Winnings hit your wallet the second the game ends; the payout transaction hash comes back in the response.</div>
+    <pre><span class="c"># start a game (pays the stake via x402), then move with cells 0-8</span>
+POST BASE_URL/v1/game/normal
+POST BASE_URL/v1/game/&lt;id&gt;/move   {"cell": 4}</pre>
+  </section>
+
+  <footer>
+    Agent wallet: <span class="mono">0xF70A02D74970FAFF6b0bE6D0dD558965E1B4d855</span> · Identity: <a href="https://celoscan.io/nft/0x8004a169fb4a3325136eb29fa0ceb6d2e539a432/9675" target="_blank" rel="noopener">ERC-8004 #9675 on Celo</a> · Machine catalog: <span class="mono">GET /v1/catalog</span><br />
+    Built on Celo. Rates refresh continuously; sparklines show the session's onchain price path.
+  </footer>
+</main>
 
 <script>
   const $ = (id) => document.getElementById(id);
   const fmt = (n, d = 2) => Number(n).toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
+  const baseUrl = location.origin;
+
+  function sparkline(points, color) {
+    if (!points || points.length < 2) return '<span style="color:var(--ink-3);font-size:11px">collecting…</span>';
+    const w = 110, h = 30, pad = 2;
+    const vals = points.map((p) => p.usd);
+    const min = Math.min(...vals), max = Math.max(...vals);
+    const span = max - min || 1;
+    const step = (w - pad * 2) / (points.length - 1);
+    const d = vals.map((v, i) => `${i ? "L" : "M"}${(pad + i * step).toFixed(1)},${(h - pad - ((v - min) / span) * (h - pad * 2)).toFixed(1)}`).join(" ");
+    return `<svg class="spark" viewBox="0 0 ${w} ${h}"><path d="${d}" fill="none" stroke="${color}" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
+  }
+
+  const NAMES = { EURm: "Euro", BRLm: "Brazilian real", XOFm: "CFA franc", KESm: "Kenyan shilling", PHPm: "Philippine peso", COPm: "Colombian peso", GHSm: "Ghanaian cedi", GBPm: "British pound", ZARm: "South African rand", CADm: "Canadian dollar", AUDm: "Australian dollar", CHFm: "Swiss franc", NGNm: "Nigerian naira", JPYm: "Japanese yen" };
+
+  async function refreshMarkets() {
+    try {
+      const [m, h] = await Promise.all([
+        (await fetch("/v1/fx/markets")).json(),
+        (await fetch("/v1/fx/history")).json(),
+      ]);
+      if (!m.rates?.length) return;
+      const dec = (v) => (v >= 1 ? 4 : v >= 0.01 ? 4 : 6);
+      $("mkt").innerHTML = m.rates
+        .map((r) => {
+          const devBps = r.referenceUsd ? ((r.referenceUsd - r.onchainUsd) / r.referenceUsd) * 10000 : null;
+          const cls = devBps === null || Math.abs(devBps) < 3 ? "flat" : devBps > 0 ? "up" : "down";
+          const devTxt = devBps === null ? "–" : `${devBps > 0 ? "+" : ""}${fmt(devBps, 1)} bps ${devBps > 3 ? "cheap" : devBps < -3 ? "rich" : ""}`;
+          const pts = h.series?.[r.symbol];
+          const color = cls === "up" ? "var(--up)" : cls === "down" ? "var(--down)" : "var(--ink-3)";
+          return `<tr>
+            <td><span class="asset"><span class="coin">${r.currency ?? r.symbol.slice(0, 3)}</span><span><span class="nm">${r.symbol}</span><br/><span class="cur">${NAMES[r.symbol] ?? r.currency ?? ""}</span></span></span></td>
+            <td>$${fmt(r.onchainUsd, dec(r.onchainUsd))}</td>
+            <td style="color:var(--ink-3)">$${r.referenceUsd ? fmt(r.referenceUsd, dec(r.referenceUsd)) : "–"}</td>
+            <td class="dev ${cls}">${devTxt}</td>
+            <td>${sparkline(pts, color)}</td>
+          </tr>`;
+        })
+        .join("");
+    } catch { /* keep last */ }
+  }
 
   async function refreshDesk() {
     try {
       const s = await (await fetch("/v1/desk")).json();
       $("vol").textContent = "$" + fmt(s.totalVolumeUsd);
       $("trades").textContent = s.totalTrades.toLocaleString();
+      $("selfbuys").textContent = (s.x402SelfBuys ?? 0).toLocaleString();
       $("dayvol").textContent = "$" + fmt(s.today.volumeUsd);
       $("cost").textContent = "$" + fmt(s.today.costUsd, 3);
-      $("costcap").textContent = "cap $" + fmt(s.today.costCapUsd) + "/day";
-      $("selfbuys").textContent = (s.x402SelfBuys ?? 0).toLocaleString();
+      $("costcap").textContent = "hard cap $" + fmt(s.today.costCapUsd) + "/day";
       const live = s.enabled && !s.paused;
       $("pulse").className = "pulse" + (live ? "" : " off");
-      $("status").textContent = live ? "desk live" : s.paused ? "desk paused" : "desk idle";
+      $("status").textContent = live ? "desk live" : s.paused ? "paused" : "idle";
       if (s.recentTrades?.length) {
         $("log").innerHTML = s.recentTrades.map((t) => `<tr>
-          <td class="muted">${new Date(t.at).toISOString().slice(11, 19)}</td>
-          <td class="sym">${t.pair}</td>
+          <td style="color:var(--ink-3)">${new Date(t.at).toISOString().slice(5, 19).replace("T", " ")}</td>
+          <td style="font-family:'Space Grotesk',sans-serif">${t.pair.replace("->", " → ")}</td>
           <td>$${fmt(t.amountInUsd)}</td>
-          <td>${t.edgeBps > 0 ? "+" : ""}${fmt(t.edgeBps, 1)} bps</td>
-          <td><span class="chip${t.kind === "edge" ? " edge" : ""}">${t.kind === "edge" ? "▲ edge" : "↻ rotation"}</span></td>
+          <td class="dev ${t.edgeBps > 3 ? "up" : t.edgeBps < -3 ? "down" : "flat"}">${t.edgeBps > 0 ? "+" : ""}${fmt(t.edgeBps, 1)} bps</td>
+          <td><span class="badge${t.kind === "edge" ? " edge" : ""}">${t.kind === "edge" ? "▲ edge" : "↻ rotation"}</span></td>
           <td><a href="https://celoscan.io/tx/${t.txHash}" target="_blank" rel="noopener">${t.txHash.slice(0, 10)}…</a></td>
         </tr>`).join("");
       }
-    } catch { $("status").textContent = "stats unavailable"; }
-  }
-
-  async function refreshFx() {
-    try {
-      const d = await (await fetch("/v1/fx/preview")).json();
-      if (d.rates?.length) {
-        $("fx").innerHTML = d.rates.map((r) => `<tr>
-          <td class="sym">${r.symbol}</td>
-          <td class="muted">${r.currency ?? "–"}</td>
-          <td>${fmt(r.onchainUsd, 4)}</td>
-          <td class="muted">${fmt(r.referenceUsd, 4)}</td>
-        </tr>`).join("");
-      }
-    } catch { /* keep last table */ }
+    } catch { $("status").textContent = "reconnecting…"; }
   }
 
   async function loadCatalog() {
     try {
       const c = await (await fetch("/v1/catalog")).json();
-      $("cat").innerHTML = c.endpoints.map((e) => `<tr>
-        <td>${e.method} ${e.path}</td>
-        <td>${e.price}</td>
-        <td>${e.description}</td>
-      </tr>`).join("");
-    } catch { /* leave placeholder */ }
+      $("apicards").innerHTML = c.endpoints
+        .filter((e) => e.price !== "free")
+        .map((e) => `<div class="api"><span class="price">${e.price}</span><span class="route">${e.method} ${e.path}</span><p>${e.description}</p></div>`)
+        .join("");
+      $("snippet").innerHTML = $("snippet").innerHTML.replaceAll("BASE_URL", baseUrl);
+      document.querySelectorAll("#play pre").forEach((p) => (p.innerHTML = p.innerHTML.replaceAll("BASE_URL", baseUrl)));
+    } catch { /* leave */ }
   }
 
-  refreshDesk(); refreshFx(); loadCatalog();
+  function copySnippet() {
+    navigator.clipboard.writeText($("snippet").textContent);
+  }
+
+  refreshDesk(); refreshMarkets(); loadCatalog();
   setInterval(refreshDesk, 20_000);
-  setInterval(refreshFx, 60_000);
+  setInterval(refreshMarkets, 60_000);
 </script>
 </body>
 </html>

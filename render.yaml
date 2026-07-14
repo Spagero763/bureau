@@ -42,10 +42,10 @@ services:
       - key: DESK_MAX_ROTATION_COST_BPS
         value: "20"
       - key: DESK_DAILY_COST_CAP_USD
-        value: "0.4"
+        value: "0.25"
       - key: DESK_SLIPPAGE
         value: "0.3"
       - key: SELF_BUY_ENABLED
         value: "1"
       - key: SELF_BUY_INTERVAL_SEC
-        value: "240"
+        value: "600"

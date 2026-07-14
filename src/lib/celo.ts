@@ -30,7 +30,9 @@ export async function feeParams(): Promise<Record<string, unknown>> {
         params: [fc] as never,
       }),
     );
-    return { feeCurrency: fc, maxFeePerGas: gp * 2n, maxPriorityFeePerGas: gp / 5n };
+    // Generous cap: with EIP-1559 you pay base+tip, never the cap itself,
+    // and Celo's base fee swings hard between blocks.
+    return { feeCurrency: fc, maxFeePerGas: gp * 8n, maxPriorityFeePerGas: gp / 4n };
   } catch {
     return { feeCurrency: fc };
   }

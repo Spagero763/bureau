@@ -198,6 +198,17 @@ export async function runCycle(): Promise<void> {
         : []),
     ];
 
+    // Rebalance: if base is too low to buy anything, selling a held position
+    // back is worth a wider cost allowance than a normal rotation; a desk
+    // sitting on positions produces nothing.
+    const rebalanceCostBps = Number(process.env.DESK_REBALANCE_COST_BPS ?? "60");
+    if (baseAmount === 0n && attempts.length === 0) {
+      const sells = candidates
+        .filter((x) => x.tokenOut.address === base.address && x.roundTripCostBps <= rebalanceCostBps)
+        .sort((a, b) => a.roundTripCostBps - b.roundTripCostBps);
+      attempts.push(...sells.map((c) => ({ c, kind: "rotation" as const })));
+    }
+
     let lastFailure: string | null = null;
     for (const { c, kind } of attempts.slice(0, 3)) {
       if (kind === "rotation") {

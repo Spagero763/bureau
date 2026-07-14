@@ -36,7 +36,11 @@ async function ensurePayerFunded(): Promise<void> {
   }
 }
 
+let inFlight = false;
+
 async function buyOnce(): Promise<void> {
+  if (inFlight) return; // timer ticks must never overlap (double-refill race)
+  inFlight = true;
   try {
     await ensurePayerFunded();
     // Buy through the public URL: the purchase is real inbound traffic, which
@@ -52,6 +56,8 @@ async function buyOnce(): Promise<void> {
     }
   } catch (e) {
     console.warn("[selfbuy] error:", e instanceof Error ? e.message : e);
+  } finally {
+    inFlight = false;
   }
 }
 

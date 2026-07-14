@@ -125,9 +125,11 @@ export async function runCycle(): Promise<void> {
     if (counters.length === 0) throw new Error("no counter tokens found on Mento");
 
     // Adaptive sizing: use the configured notional when the base balance
-    // covers it, otherwise trade whatever base is available (floor $1) so a
-    // partially deployed desk never deadlocks.
-    const baseBal = await balanceOf(base);
+    // covers it, otherwise trade whatever base is available (floor $1),
+    // always keeping headroom because gas is paid in the base currency.
+    const gasReserve = parseUnits("0.5", base.decimals);
+    const baseBalRaw = await balanceOf(base);
+    const baseBal = baseBalRaw > gasReserve ? baseBalRaw - gasReserve : 0n;
     const configured = parseUnits(config.desk.tradeUsd.toString(), base.decimals);
     const floor = parseUnits("1", base.decimals);
     const baseAmount = baseBal >= configured ? configured : baseBal >= floor ? baseBal : 0n;
@@ -180,30 +182,39 @@ export async function runCycle(): Promise<void> {
       }
     }
 
-    // 1. Best edge trade above threshold
-    const best = candidates.filter((x) => x.edgeBps >= config.desk.minEdgeBps).sort((a, b) => b.edgeBps - a.edgeBps)[0];
-    if (best) {
-      await executeSwap(best.tokenIn, best.tokenOut, best.amountIn, "edge", best.edgeBps, usdPer);
-      recordCycle();
-      return;
-    }
+    // Build the attempt list: edge trades above threshold first (best edge
+    // first), then cost-capped rotation legs. Try candidates in order; a
+    // failing send (gas, slippage, tradability) falls through to the next.
+    const attempts: Array<{ c: Candidate; kind: "edge" | "rotation" }> = [
+      ...candidates
+        .filter((x) => x.edgeBps >= config.desk.minEdgeBps)
+        .sort((a, b) => b.edgeBps - a.edgeBps)
+        .map((c) => ({ c, kind: "edge" as const })),
+      ...(config.desk.rotation
+        ? candidates
+            .filter((x) => x.edgeBps < config.desk.minEdgeBps && x.roundTripCostBps <= config.desk.maxRotationCostBps)
+            .sort((a, b) => b.edgeBps - a.edgeBps)
+            .map((c) => ({ c, kind: "rotation" as const }))
+        : []),
+    ];
 
-    // 2. Rotation: cheapest viable leg within cost budget
-    if (config.desk.rotation) {
-      const viable = candidates
-        .filter((x) => x.roundTripCostBps <= config.desk.maxRotationCostBps)
-        .sort((a, b) => b.edgeBps - a.edgeBps)[0]; // least-bad direction first
-      if (viable) {
-        const estLegCostUsd = (tradeUsd * (viable.roundTripCostBps / 2)) / 10_000;
-        if (state.dayCostUsd + estLegCostUsd <= config.desk.dailyCostCapUsd) {
-          await executeSwap(viable.tokenIn, viable.tokenOut, viable.amountIn, "rotation", viable.edgeBps, usdPer);
-          recordCycle();
-          return;
-        }
+    let lastFailure: string | null = null;
+    for (const { c, kind } of attempts.slice(0, 3)) {
+      if (kind === "rotation") {
+        const estLegCostUsd = (tradeUsd * (c.roundTripCostBps / 2)) / 10_000;
+        if (state.dayCostUsd + estLegCostUsd > config.desk.dailyCostCapUsd) continue;
+      }
+      try {
+        await executeSwap(c.tokenIn, c.tokenOut, c.amountIn, kind, c.edgeBps, usdPer);
+        recordCycle();
+        return;
+      } catch (e) {
+        lastFailure = e instanceof Error ? e.message.slice(0, 200) : "swap failed";
+        console.warn(`[desk] ${kind} ${c.tokenIn.symbol}->${c.tokenOut.symbol} failed, trying next:`, lastFailure);
       }
     }
 
-    recordCycle();
+    recordCycle(lastFailure ?? undefined);
   } catch (e) {
     recordCycle(e instanceof Error ? e.message : "cycle failed");
     console.error("[desk] cycle error:", e);

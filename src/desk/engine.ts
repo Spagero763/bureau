@@ -124,9 +124,14 @@ export async function runCycle(): Promise<void> {
     );
     if (counters.length === 0) throw new Error("no counter tokens found on Mento");
 
-    const tradeUsd = config.desk.tradeUsd;
-    const baseAmount = parseUnits(tradeUsd.toString(), base.decimals);
+    // Adaptive sizing: use the configured notional when the base balance
+    // covers it, otherwise trade whatever base is available (floor $1) so a
+    // partially deployed desk never deadlocks.
     const baseBal = await balanceOf(base);
+    const configured = parseUnits(config.desk.tradeUsd.toString(), base.decimals);
+    const floor = parseUnits("1", base.decimals);
+    const baseAmount = baseBal >= configured ? configured : baseBal >= floor ? baseBal : 0n;
+    const tradeUsd = Number(formatUnits(baseAmount > 0n ? baseAmount : configured, base.decimals));
 
     // Evaluate edges: positive edge means the counter is cheap onchain (buy);
     // for held counters, a negative edge means it is rich onchain (sell back).
@@ -144,32 +149,34 @@ export async function runCycle(): Promise<void> {
       const refUsdPer = cur ? usdPer[cur] : undefined;
       if (!refUsdPer) continue;
 
-      const out = await quote(base.address, c.address, baseAmount).catch(() => 0n);
+      const probe = baseAmount > 0n ? baseAmount : configured;
+      const probeUsd = Number(formatUnits(probe, base.decimals));
+      const out = await quote(base.address, c.address, probe).catch(() => 0n);
       if (out === 0n) continue;
-      const impliedUsdPer = tradeUsd / Number(formatUnits(out, c.decimals));
+      const impliedUsdPer = probeUsd / Number(formatUnits(out, c.decimals));
       const buyEdgeBps = ((refUsdPer - impliedUsdPer) / refUsdPer) * 10_000;
 
       // round-trip estimate for rotation costing
       const back = await quote(c.address, base.address, out).catch(() => 0n);
-      const roundTripCostBps = back === 0n ? Infinity : (1 - Number(formatUnits(back, base.decimals)) / tradeUsd) * 10_000;
+      const roundTripCostBps = back === 0n ? Infinity : (1 - Number(formatUnits(back, base.decimals)) / probeUsd) * 10_000;
 
-      if (baseBal >= baseAmount) {
+      if (baseAmount > 0n) {
         candidates.push({ tokenIn: base, tokenOut: c, amountIn: baseAmount, edgeBps: buyEdgeBps, roundTripCostBps });
       }
 
+      // Sell whatever we hold (whole position, capped at the configured
+      // notional) so capital always cycles back to base.
       const cBal = await balanceOf(c);
       const cBalUsd = usdValue(c, cBal, usdPer);
-      if (cBalUsd >= tradeUsd * 0.9) {
-        const sellAmount = parseUnits((tradeUsd / refUsdPer).toFixed(Math.min(6, c.decimals)), c.decimals);
-        if (cBal >= sellAmount) {
-          candidates.push({
-            tokenIn: c,
-            tokenOut: base,
-            amountIn: sellAmount,
-            edgeBps: -buyEdgeBps,
-            roundTripCostBps,
-          });
-        }
+      if (cBalUsd >= 1) {
+        const maxTokens = parseUnits((config.desk.tradeUsd / refUsdPer).toFixed(Math.min(6, c.decimals)), c.decimals);
+        candidates.push({
+          tokenIn: c,
+          tokenOut: base,
+          amountIn: cBal > maxTokens ? maxTokens : cBal,
+          edgeBps: -buyEdgeBps,
+          roundTripCostBps,
+        });
       }
     }
 

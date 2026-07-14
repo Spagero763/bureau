@@ -34,7 +34,7 @@ services:
       - key: DESK_TRADE_USD
         value: "4"
       - key: DESK_INTERVAL_SEC
-        value: "240"
+        value: "120"
       - key: DESK_MIN_EDGE_BPS
         value: "10"
       - key: DESK_ROTATION
@@ -42,10 +42,10 @@ services:
       - key: DESK_MAX_ROTATION_COST_BPS
         value: "20"
       - key: DESK_DAILY_COST_CAP_USD
-        value: "0.4"
+        value: "0.75"
       - key: DESK_SLIPPAGE
         value: "0.3"
       - key: SELF_BUY_ENABLED
         value: "1"
       - key: SELF_BUY_INTERVAL_SEC
-        value: "180"
+        value: "90"

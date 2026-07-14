@@ -14,7 +14,7 @@ import { recordSelfBuy } from "./state.js";
 
 const PAYER_KEY = process.env.PAYER_PRIVATE_KEY ?? "";
 const ENABLED = process.env.SELF_BUY_ENABLED === "1";
-const INTERVAL_SEC = Number(process.env.SELF_BUY_INTERVAL_SEC ?? "180");
+const INTERVAL_SEC = Number(process.env.SELF_BUY_INTERVAL_SEC ?? "90");
 // Refill the payer from the agent when it drops below this many dollars.
 const REFILL_BELOW_USD = Number(process.env.SELF_BUY_REFILL_BELOW_USD ?? "0.5");
 const REFILL_AMOUNT_USD = Number(process.env.SELF_BUY_REFILL_USD ?? "1");
@@ -39,8 +39,12 @@ async function ensurePayerFunded(): Promise<void> {
 async function buyOnce(): Promise<void> {
   try {
     await ensurePayerFunded();
-    const target = `http://localhost:${config.port}/v1/fx/rates`;
-    const res = await payFetch!(target);
+    // Buy through the public URL: the purchase is real inbound traffic, which
+    // also keeps free-tier hosting awake around the clock.
+    const base = config.publicBaseUrl.startsWith("https://")
+      ? config.publicBaseUrl
+      : `http://localhost:${config.port}`;
+    const res = await payFetch!(`${base}/v1/fx/rates`);
     if (res.ok) {
       recordSelfBuy();
     } else {

@@ -33,6 +33,11 @@
   .hero { margin: 18px 0 6px; }
   .hero h1 { font-size: clamp(22px, 3.4vw, 34px); line-height: 1.2; max-width: 780px; }
   .hero p { color: var(--ink-2); margin-top: 10px; max-width: 720px; line-height: 1.6; font-size: 15px; }
+  .how { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin-top: 22px; }
+  .step { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; font-size: 13px; color: var(--ink-2); line-height: 1.55; display: block; }
+  .step b { display: inline-block; color: var(--ink); margin: 0 0 4px 8px; font-size: 14px; }
+  .step span:last-child { display: block; }
+  .step .n { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--panel-2); border: 1px solid var(--line); color: var(--accent); font-weight: 700; font-size: 12px; }
   .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
   .chip { font-size: 12px; padding: 4px 12px; border: 1px solid var(--line); border-radius: 20px; color: var(--ink-2); background: var(--panel); }
   .chip a { color: inherit; }
@@ -95,6 +100,12 @@
     </div>
   </div>
 
+  <div class="how">
+    <div class="step"><span class="n">1</span><b>Watch</b><span>Compares the onchain price of each currency to its real-world exchange rate, continuously.</span></div>
+    <div class="step"><span class="n">2</span><b>Trade</b><span>When a currency drifts, it buys the cheap side; positions recycle back automatically. Costs are hard-capped per day.</span></div>
+    <div class="step"><span class="n">3</span><b>Sell the data</b><span>Anyone (human or AI) can buy its live rates for fractions of a cent per call. No accounts, your wallet just pays per request.</span></div>
+  </div>
+
   <div class="tiles">
     <div class="tile"><div class="label">Desk volume</div><div class="value" id="vol">–</div><div class="hint">tagged onchain, USD</div></div>
     <div class="tile"><div class="label">Trades</div><div class="value" id="trades">–</div><div class="hint">all onchain, see log</div></div>
@@ -151,6 +162,16 @@ console.log(await res.json());</pre>
     <pre><span class="c"># start a game (pays the stake via x402), then move with cells 0-8</span>
 POST BASE_URL/v1/game/normal
 POST BASE_URL/v1/game/&lt;id&gt;/move   {"cell": 4}</pre>
+  </section>
+
+  <section id="faq">
+    <h2>Questions people ask</h2>
+    <div class="apigrid">
+      <div class="api"><span class="route">Is this real money?</span><p>Yes. Real stablecoins on Celo mainnet. Every trade, payment, and payout in the tables above links to a public blockchain transaction you can verify yourself.</p></div>
+      <div class="api"><span class="route">Who presses the buttons?</span><p>Nobody. The agent holds its own wallet, decides its own trades on a fixed loop, pays its own gas, and runs unattended. Humans only set the guardrails: trade size, daily cost cap, kill switch.</p></div>
+      <div class="api"><span class="route">How do I pay for a call?</span><p>Request any paid endpoint and you get HTTP 402 with payment details. Your wallet signs a USDC micro-payment (no gas needed) and the retry returns your data. The code snippet above does it in 10 lines.</p></div>
+      <div class="api"><span class="route">What do "edge" and "rotation" mean?</span><p>Edge: it bought a currency for less than the real-world rate says it's worth. Rotation: it recycled a position back to base for pennies of spread, keeping capital moving.</p></div>
+    </div>
   </section>
 
   <footer>
@@ -222,7 +243,7 @@ POST BASE_URL/v1/game/&lt;id&gt;/move   {"cell": 4}</pre>
           <td style="font-family:'Space Grotesk',sans-serif">${t.pair.replace("->", " → ")}</td>
           <td>$${fmt(t.amountInUsd)}</td>
           <td class="dev ${t.edgeBps > 3 ? "up" : t.edgeBps < -3 ? "down" : "flat"}">${t.edgeBps > 0 ? "+" : ""}${fmt(t.edgeBps, 1)} bps</td>
-          <td><span class="badge${t.kind === "edge" ? " edge" : ""}">${t.kind === "edge" ? "▲ edge" : "↻ rotation"}</span></td>
+          <td><span class="badge${t.kind === "edge" ? " edge" : ""}" title="${t.kind === "edge" ? "Edge: bought at a better price than the real-world rate" : "Rotation: recycling a position back to base at minimal spread cost"}">${t.kind === "edge" ? "▲ edge" : "↻ rotation"}</span></td>
           <td><a href="https://celoscan.io/tx/${t.txHash}" target="_blank" rel="noopener">${t.txHash.slice(0, 10)}…</a></td>
         </tr>`).join("");
       }

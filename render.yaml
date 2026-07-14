@@ -32,9 +32,9 @@ services:
       - key: DESK_PAIRS
         value: "EURm,BRLm,KESm,PHPm,GHSm"
       - key: DESK_TRADE_USD
-        value: "4"
+        value: "8"
       - key: DESK_INTERVAL_SEC
-        value: "120"
+        value: "90"
       - key: DESK_MIN_EDGE_BPS
         value: "10"
       - key: DESK_ROTATION

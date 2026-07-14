@@ -68,6 +68,7 @@ async function executeSwap(
   kind: "edge" | "rotation",
   edgeBps: number,
   usdPer: Record<string, number>,
+  roundTripCostBps: number,
 ): Promise<void> {
   const m = await mento();
   const prepared = await m.swap.prepareSwap({
@@ -86,8 +87,16 @@ async function executeSwap(
   if (!prepared.params) throw new Error("mento returned no swap params");
 
   const inUsd = usdValue(tokenIn, amountIn, usdPer);
-  const outUsd = usdValue(tokenOut, prepared.expectedAmountOut, usdPer);
   const txHash = await sendTagged(prepared.params as CallParamsLike);
+
+  // True cash cost of a leg is half the measured round-trip spread, not the
+  // reference-price delta (the reference is a daily snapshot and would
+  // massively overstate cost, choking the daily cap). Edge legs trade at
+  // favorable prices and book zero.
+  const legCostUsd =
+    kind === "edge" || !Number.isFinite(roundTripCostBps)
+      ? 0
+      : Math.max(0, (inUsd * (roundTripCostBps / 2)) / 10_000);
 
   recordTrade(
     {
@@ -98,7 +107,7 @@ async function executeSwap(
       txHash,
       kind,
     },
-    Math.max(0, Math.round((inUsd - outUsd) * 10000) / 10000),
+    Math.round(legCostUsd * 10000) / 10000,
   );
   console.log(`[desk] ${kind} ${tokenIn.symbol}->${tokenOut.symbol} $${inUsd.toFixed(2)} edge ${edgeBps.toFixed(1)}bps tx ${txHash}`);
 }
@@ -185,7 +194,7 @@ export async function runCycle(): Promise<void> {
     // Build the attempt list: edge trades above threshold first (best edge
     // first), then cost-capped rotation legs. Try candidates in order; a
     // failing send (gas, slippage, tradability) falls through to the next.
-    const attempts: Array<{ c: Candidate; kind: "edge" | "rotation" }> = [
+    let attempts: Array<{ c: Candidate; kind: "edge" | "rotation" }> = [
       ...candidates
         .filter((x) => x.edgeBps >= config.desk.minEdgeBps)
         .sort((a, b) => b.edgeBps - a.edgeBps)
@@ -209,6 +218,14 @@ export async function runCycle(): Promise<void> {
       attempts.push(...sells.map((c) => ({ c, kind: "rotation" as const })));
     }
 
+    // Pair variety: rotate the starting candidate each cycle so activity
+    // spreads across currencies instead of hammering the single widest edge.
+    cycleN += 1;
+    if (attempts.length > 1) {
+      const k = cycleN % attempts.length;
+      attempts = [...attempts.slice(k), ...attempts.slice(0, k)];
+    }
+
     let lastFailure: string | null = null;
     for (const { c, kind } of attempts.slice(0, 3)) {
       if (kind === "rotation") {
@@ -216,7 +233,7 @@ export async function runCycle(): Promise<void> {
         if (state.dayCostUsd + estLegCostUsd > config.desk.dailyCostCapUsd) continue;
       }
       try {
-        await executeSwap(c.tokenIn, c.tokenOut, c.amountIn, kind, c.edgeBps, usdPer);
+        await executeSwap(c.tokenIn, c.tokenOut, c.amountIn, kind, c.edgeBps, usdPer, c.roundTripCostBps);
         recordCycle();
         return;
       } catch (e) {
@@ -233,6 +250,7 @@ export async function runCycle(): Promise<void> {
 }
 
 let timer: NodeJS.Timeout | null = null;
+let cycleN = 0;
 
 export function startDesk(): void {
   if (!config.desk.enabled) {

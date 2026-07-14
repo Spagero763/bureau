@@ -38,8 +38,11 @@ export async function feeParams(): Promise<Record<string, unknown>> {
     const base = block.baseFeePerGas ?? 0n;
     const anchor = base > gpFc ? base : gpFc;
     if (anchor === 0n) return { feeCurrency: fc };
+    // Cap at 2x the anchor: rich enough for inter-block swings, lean enough
+    // that a small stablecoin balance still passes the node's allowance check
+    // (allowance = balance / maxFeePerGas).
     const tip = anchor / 10n + 1n;
-    return { feeCurrency: fc, maxFeePerGas: anchor * 4n + tip, maxPriorityFeePerGas: tip };
+    return { feeCurrency: fc, maxFeePerGas: anchor * 2n + tip, maxPriorityFeePerGas: tip };
   } catch {
     return { feeCurrency: fc };
   }

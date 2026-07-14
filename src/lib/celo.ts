@@ -24,15 +24,22 @@ export async function feeParams(): Promise<Record<string, unknown>> {
   const fc = feeCurrency();
   if (!fc) return {};
   try {
-    const gp = BigInt(
-      await publicClient.request({
-        method: "eth_gasPrice" as never,
-        params: [fc] as never,
-      }),
-    );
-    // Generous cap: with EIP-1559 you pay base+tip, never the cap itself,
-    // and Celo's base fee swings hard between blocks.
-    return { feeCurrency: fc, maxFeePerGas: gp * 8n, maxPriorityFeePerGas: gp / 4n };
+    // The node validates the cap against the block base fee, while the
+    // fee-currency gas price oracle can lag far below it. Anchor on the
+    // live base fee and cap generously: with EIP-1559 you pay base+tip,
+    // never the cap.
+    const [block, gpFc] = await Promise.all([
+      publicClient.getBlock({ blockTag: "latest" }),
+      publicClient
+        .request({ method: "eth_gasPrice" as never, params: [fc] as never })
+        .then((v) => BigInt(v as string))
+        .catch(() => 0n),
+    ]);
+    const base = block.baseFeePerGas ?? 0n;
+    const anchor = base > gpFc ? base : gpFc;
+    if (anchor === 0n) return { feeCurrency: fc };
+    const tip = anchor / 10n + 1n;
+    return { feeCurrency: fc, maxFeePerGas: anchor * 4n + tip, maxPriorityFeePerGas: tip };
   } catch {
     return { feeCurrency: fc };
   }

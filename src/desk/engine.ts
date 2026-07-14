@@ -128,8 +128,12 @@ export async function runCycle(): Promise<void> {
     const base = tokens.find((t) => t.symbol.toLowerCase() === config.desk.baseSymbol.toLowerCase());
     if (!base) throw new Error(`base token ${config.desk.baseSymbol} not found on Mento`);
 
-    const counters = tokens.filter((t) =>
-      config.desk.counterSymbols.some((s) => s.toLowerCase() === t.symbol.toLowerCase()),
+    // Self-discovery: trade everything Mento lists unless explicitly restricted.
+    const counters = tokens.filter(
+      (t) =>
+        t.address !== base.address &&
+        (config.desk.counterSymbols.length === 0 ||
+          config.desk.counterSymbols.some((s) => s.toLowerCase() === t.symbol.toLowerCase())),
     );
     if (counters.length === 0) throw new Error("no counter tokens found on Mento");
 
@@ -262,7 +266,7 @@ export function startDesk(): void {
     return;
   }
   console.log(
-    `[desk] live: base ${config.desk.baseSymbol}, pairs ${config.desk.counterSymbols.join("/")}, $${config.desk.tradeUsd}/trade, every ${config.desk.intervalSec}s, cost cap $${config.desk.dailyCostCapUsd}/day`,
+    `[desk] live: base ${config.desk.baseSymbol}, pairs ${config.desk.counterSymbols.length ? config.desk.counterSymbols.join("/") : "ALL (self-discovered)"}, $${config.desk.tradeUsd}/trade, every ${config.desk.intervalSec}s, cost cap $${config.desk.dailyCostCapUsd}/day`,
   );
   const tick = () => void runCycle();
   timer = setInterval(tick, config.desk.intervalSec * 1000);

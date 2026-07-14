@@ -30,7 +30,7 @@ services:
       - key: DESK_BASE
         value: "USDm"
       - key: DESK_PAIRS
-        value: "EURm,BRLm,KESm,PHPm,GHSm"
+        value: ""
       - key: DESK_TRADE_USD
         value: "8"
       - key: DESK_INTERVAL_SEC

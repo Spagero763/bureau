@@ -48,10 +48,12 @@ export const config = {
   desk: {
     enabled: process.env.DESK_ENABLED === "1",
     baseSymbol: process.env.DESK_BASE ?? "USDm",
-    counterSymbols: (process.env.DESK_PAIRS ?? "EURm,BRLm,KESm,PHPm,GHSm")
+    // Empty (default) means the desk scans EVERY Mento stable it discovers
+    // onchain; set a comma list only to deliberately restrict it.
+    counterSymbols: (process.env.DESK_PAIRS ?? "")
       .split(",")
       .map((s) => s.trim())
-      .filter(Boolean),
+      .filter((s) => s && s !== "*"),
     tradeUsd: num("DESK_TRADE_USD", "25"),
     intervalSec: num("DESK_INTERVAL_SEC", "240"),
     minEdgeBps: num("DESK_MIN_EDGE_BPS", "10"),

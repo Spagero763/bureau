@@ -36,13 +36,13 @@ services:
       - key: DESK_INTERVAL_SEC
         value: "90"
       - key: DESK_MIN_EDGE_BPS
-        value: "10"
+        value: "6"
       - key: DESK_ROTATION
         value: "1"
       - key: DESK_MAX_ROTATION_COST_BPS
         value: "20"
       - key: DESK_DAILY_COST_CAP_USD
-        value: "0.75"
+        value: "1.0"
       - key: DESK_SLIPPAGE
         value: "0.3"
       - key: SELF_BUY_ENABLED

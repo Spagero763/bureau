@@ -56,6 +56,17 @@ export function registerCatalogRoutes(app: Express) {
   });
   app.get("/v1/catalog", (_req: Request, res: Response) => res.json(catalog()));
 
+  // Browser play page: connect a wallet, sign the stake, play in the page.
+  let playHtml: string | null = null;
+  app.get("/play", (_req: Request, res: Response) => {
+    try {
+      playHtml ??= readFileSync(join(process.cwd(), "public", "play.html"), "utf8");
+      res.type("html").send(playHtml);
+    } catch {
+      res.redirect("/");
+    }
+  });
+
   // ERC-8004 registration file
   app.get("/.well-known/agent-card.json", (_req: Request, res: Response) => {
     res.json({

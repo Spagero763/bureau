@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Play Bureau — stake USDC, beat the robot, get paid onchain</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+<style>
+  :root { --bg:#101010; --panel:#181816; --panel2:#1f1f1d; --line:#2b2b28; --ink:#f4f3ee; --ink2:#b4b3a8; --ink3:#78776e; --accent:#4b93e7; --up:#34c273; --down:#e66461; }
+  * { box-sizing:border-box; margin:0; }
+  body { background:var(--bg); color:var(--ink); font-family:"Space Grotesk",system-ui,sans-serif; min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:28px 16px 60px; }
+  a { color:var(--accent); text-decoration:none; }
+  .mono { font-family:"JetBrains Mono",monospace; }
+  nav { width:100%; max-width:860px; display:flex; align-items:center; gap:18px; margin-bottom:30px; }
+  .brand { font-weight:700; letter-spacing:1px; font-size:18px; }
+  nav a { color:var(--ink2); font-size:14px; } nav a:hover { color:var(--ink); }
+  h1 { font-size:clamp(22px,4vw,32px); text-align:center; max-width:640px; line-height:1.25; }
+  .sub { color:var(--ink2); text-align:center; max-width:560px; margin-top:10px; line-height:1.6; font-size:15px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:22px; width:100%; max-width:420px; margin-top:26px; }
+  .btn { width:100%; padding:13px; border-radius:10px; border:1px solid var(--line); background:var(--panel2); color:var(--ink); font-family:inherit; font-size:15px; font-weight:500; cursor:pointer; margin-top:10px; }
+  .btn:hover { border-color:var(--accent); }
+  .btn.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .btn:disabled { opacity:.5; cursor:not-allowed; }
+  .row { display:flex; gap:10px; }
+  .row .btn { margin-top:10px; }
+  .status { margin-top:14px; font-size:13.5px; color:var(--ink2); line-height:1.6; min-height:22px; text-align:center; }
+  .status.err { color:var(--down); } .status.ok { color:var(--up); }
+  .wallet { font-size:13px; color:var(--ink3); text-align:center; margin-top:8px; }
+  .board { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:18px; }
+  .cell { aspect-ratio:1; border:1px solid var(--line); border-radius:10px; background:var(--panel2); font-size:34px; font-weight:700; color:var(--ink); display:grid; place-items:center; cursor:pointer; font-family:"JetBrains Mono",monospace; transition:border-color .15s; }
+  .cell:hover:not(.taken):not(.locked) { border-color:var(--accent); }
+  .cell.taken { cursor:default; }
+  .cell.o { color:var(--down); } .cell.x { color:var(--up); }
+  .result { margin-top:16px; text-align:center; font-size:16px; font-weight:600; }
+  .result a { display:block; font-size:13px; font-weight:400; margin-top:6px; }
+  .small { color:var(--ink3); font-size:12.5px; line-height:1.6; margin-top:16px; text-align:center; }
+</style>
+</head>
+<body>
+<nav><span class="brand">BUREAU</span><a href="/">Dashboard</a><a href="https://github.com/Spagero763/bureau" target="_blank" rel="noopener">GitHub</a></nav>
+
+<h1>Stake 10 cents. Beat the robot. Get paid before you close the tab.</h1>
+<p class="sub">Noughts &amp; crosses against Bureau's bot, for real USDC on Celo. Win and it pays 1.5x instantly onchain (3x on hard). Draws refund most of your stake. You sign one gasless payment, no deposit, no signup.</p>
+
+<div class="card">
+  <div id="stage-connect">
+    <button class="btn primary" id="connectBtn">Connect wallet</button>
+    <div class="wallet" id="walletInfo">Works with MetaMask, Rabby, and any browser wallet on Celo.</div>
+  </div>
+
+  <div id="stage-start" style="display:none">
+    <div class="row">
+      <button class="btn primary" id="playNormal">Play · $0.10 <span style="opacity:.8">(win 1.5x)</span></button>
+      <button class="btn" id="playHard">Hard · $0.25 <span style="opacity:.8">(win 3x)</span></button>
+    </div>
+    <div class="wallet" id="balInfo"></div>
+  </div>
+
+  <div id="stage-game" style="display:none">
+    <div class="board" id="board"></div>
+    <div class="result" id="result"></div>
+    <button class="btn" id="againBtn" style="display:none">Play again</button>
+  </div>
+
+  <div class="status" id="status"></div>
+</div>
+
+<p class="small">You are X and move first. Payment uses the x402 protocol: your wallet signs a USDC authorization, the network's facilitator settles it, no gas needed from you. Need USDC on Celo? Any exchange that withdraws to Celo, or swap on <a href="https://app.mento.org" target="_blank" rel="noopener">Mento</a>.<br/>Payouts come from the agent's wallet within seconds; the transaction link appears right here.</p>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const CHAIN_HEX = "0xa4ec"; // 42220
+const USDC = "0xcebA9300f2b948710d2653dD7B07f33A8B32118C";
+let account = null;
+let game = null;
+let busy = false;
+
+function setStatus(msg, cls) { const s = $("status"); s.textContent = msg; s.className = "status" + (cls ? " " + cls : ""); }
+
+function b64(obj) { return btoa(unescape(encodeURIComponent(JSON.stringify(obj)))); }
+function fromB64(str) { return JSON.parse(decodeURIComponent(escape(atob(str)))); }
+function randNonce() { const b = new Uint8Array(32); crypto.getRandomValues(b); return "0x" + [...b].map((x) => x.toString(16).padStart(2, "0")).join(""); }
+
+async function ensureChain() {
+  const eth = window.ethereum;
+  const current = await eth.request({ method: "eth_chainId" });
+  if (current === CHAIN_HEX) return;
+  try {
+    await eth.request({ method: "wallet_switchEthereumChain", params: [{ chainId: CHAIN_HEX }] });
+  } catch (e) {
+    if (e.code === 4902) {
+      await eth.request({ method: "wallet_addEthereumChain", params: [{ chainId: CHAIN_HEX, chainName: "Celo", nativeCurrency: { name: "CELO", symbol: "CELO", decimals: 18 }, rpcUrls: ["https://forno.celo.org"], blockExplorerUrls: ["https://celoscan.io"] }] });
+    } else throw e;
+  }
+}
+
+async function usdcBalance(addr) {
+  const data = "0x70a08231" + addr.slice(2).toLowerCase().padStart(64, "0");
+  const hex = await window.ethereum.request({ method: "eth_call", params: [{ to: USDC, data }, "latest"] });
+  return Number(BigInt(hex)) / 1e6;
+}
+
+async function connect() {
+  if (!window.ethereum) { setStatus("No browser wallet found. Install MetaMask or Rabby, fund it with a little USDC on Celo, and come back.", "err"); return; }
+  try {
+    setStatus("Connecting…");
+    const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+    account = accounts[0];
+    await ensureChain();
+    const bal = await usdcBalance(account).catch(() => null);
+    $("stage-connect").style.display = "none";
+    $("stage-start").style.display = "block";
+    $("balInfo").textContent = account.slice(0, 6) + "…" + account.slice(-4) + (bal === null ? "" : " · " + bal.toFixed(2) + " USDC on Celo");
+    setStatus(bal !== null && bal < 0.1 ? "This wallet has less than $0.10 USDC on Celo; top up to play." : "", bal !== null && bal < 0.1 ? "err" : "");
+  } catch (e) { setStatus(e?.message ?? "Connection failed", "err"); }
+}
+
+async function payAndStart(mode) {
+  if (busy) return; busy = true;
+  try {
+    setStatus("Requesting game…");
+    const path = "/v1/game/" + mode;
+    const first = await fetch(path, { method: "POST" });
+    if (first.status !== 402) {
+      const b = await first.json().catch(() => ({}));
+      throw new Error(b.error ?? ("unexpected response " + first.status));
+    }
+    const challenge = fromB64(first.headers.get("PAYMENT-REQUIRED"));
+    const acc = challenge.accepts[0];
+
+    setStatus("Sign the $" + (Number(acc.amount) / 1e6).toFixed(2) + " USDC stake in your wallet (gasless)…");
+    const authorization = {
+      from: account,
+      to: acc.payTo,
+      value: acc.amount,
+      validAfter: "0",
+      validBefore: String(Math.floor(Date.now() / 1000) + (acc.maxTimeoutSeconds ?? 300)),
+      nonce: randNonce(),
+    };
+    const typedData = {
+      types: {
+        EIP712Domain: [
+          { name: "name", type: "string" }, { name: "version", type: "string" },
+          { name: "chainId", type: "uint256" }, { name: "verifyingContract", type: "address" },
+        ],
+        TransferWithAuthorization: [
+          { name: "from", type: "address" }, { name: "to", type: "address" },
+          { name: "value", type: "uint256" }, { name: "validAfter", type: "uint256" },
+          { name: "validBefore", type: "uint256" }, { name: "nonce", type: "bytes32" },
+        ],
+      },
+      primaryType: "TransferWithAuthorization",
+      domain: { name: acc.extra.name, version: acc.extra.version, chainId: 42220, verifyingContract: acc.asset },
+      message: authorization,
+    };
+    const signature = await window.ethereum.request({ method: "eth_signTypedData_v4", params: [account, JSON.stringify(typedData)] });
+
+    setStatus("Settling your stake onchain…");
+    const header = b64({ x402Version: 2, payload: { authorization, signature }, resource: challenge.resource, accepted: acc });
+    const paid = await fetch(path, { method: "POST", headers: { "PAYMENT-SIGNATURE": header } });
+    if (!paid.ok) {
+      const b = await paid.json().catch(() => ({}));
+      throw new Error(b.error ?? "payment failed (" + paid.status + "). Nothing further was charged.");
+    }
+    game = await paid.json();
+    renderBoard();
+    $("stage-start").style.display = "none";
+    $("stage-game").style.display = "block";
+    $("result").textContent = "";
+    $("againBtn").style.display = "none";
+    setStatus("Stake settled. You are X, your move.", "ok");
+  } catch (e) {
+    setStatus(e?.message ?? "Something went wrong", "err");
+  } finally { busy = false; }
+}
+
+function renderBoard() {
+  const b = $("board");
+  b.innerHTML = "";
+  game.board.forEach((cell, i) => {
+    const d = document.createElement("div");
+    d.className = "cell" + (cell ? " taken " + cell.toLowerCase() : "") + (game.outcome ? " locked" : "");
+    d.textContent = cell ?? "";
+    if (!cell && !game.outcome) d.onclick = () => move(i);
+    b.appendChild(d);
+  });
+}
+
+async function move(i) {
+  if (busy || game.outcome) return; busy = true;
+  try {
+    setStatus("…");
+    const res = await fetch("/v1/game/" + game.id + "/move", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cell: i }) });
+    const next = await res.json();
+    if (!res.ok && res.status !== 202) throw new Error(next.error ?? "move failed");
+    game = next;
+    renderBoard();
+    if (game.outcome) {
+      const r = $("result");
+      if (game.outcome === "win") {
+        r.innerHTML = "🏆 You beat the robot. Paid $" + (Number(game.winPaysUsdc) / 1e6).toFixed(2) + " USDC." + (game.payoutTx ? ' <a href="https://celoscan.io/tx/' + game.payoutTx + '" target="_blank" rel="noopener">payout receipt ↗</a>' : "");
+        setStatus("Screenshot that receipt. The robot demands a rematch.", "ok");
+      } else if (game.outcome === "draw") {
+        r.innerHTML = "🤝 Draw. Refunded $" + (Number(game.drawRefundsUsdc) / 1e6).toFixed(2) + " USDC." + (game.payoutTx ? ' <a href="https://celoscan.io/tx/' + game.payoutTx + '" target="_blank" rel="noopener">refund receipt ↗</a>' : "");
+        setStatus("So close. It blunders sometimes, try again.", "");
+      } else {
+        r.textContent = "🤖 The robot wins this one.";
+        setStatus("It plays nearly perfect but not perfect. Revenge is $0.10 away.", "");
+      }
+      $("againBtn").style.display = "block";
+    } else {
+      setStatus("Robot played. Your move.");
+    }
+  } catch (e) { setStatus(e?.message ?? "move failed", "err"); }
+  finally { busy = false; }
+}
+
+$("connectBtn").onclick = connect;
+$("playNormal").onclick = () => payAndStart("normal");
+$("playHard").onclick = () => payAndStart("hard");
+$("againBtn").onclick = () => { $("stage-game").style.display = "none"; $("stage-start").style.display = "block"; setStatus(""); };
+</script>
+</body>
+</html>

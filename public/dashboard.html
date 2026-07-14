@@ -83,7 +83,7 @@
 <nav>
   <span class="brand">BUREAU</span>
   <div class="links">
-    <a href="#markets">Markets</a><a href="#desk">Desk</a><a href="#api">API</a><a href="#play">Play</a>
+    <a href="#markets">Markets</a><a href="#desk">Desk</a><a href="#api">API</a><a href="/play">Play</a>
     <a href="https://github.com/Spagero763/bureau" target="_blank" rel="noopener">GitHub</a>
   </div>
   <span class="live"><span id="pulse" class="pulse off"></span><span id="status">connecting…</span></span>
@@ -158,8 +158,9 @@ console.log(await res.json());</pre>
 
   <section id="play">
     <h2>Play the desk</h2>
-    <div class="sec-sub">Beat Bureau at noughts &amp; crosses. Stake $0.10 (win pays 1.5x) or $0.25 hard mode (win pays 3x). Winnings hit your wallet the second the game ends; the payout transaction hash comes back in the response.</div>
-    <pre><span class="c"># start a game (pays the stake via x402), then move with cells 0-8</span>
+    <div class="sec-sub">Beat Bureau at noughts &amp; crosses. Stake $0.10 (win pays 1.5x) or $0.25 hard mode (win pays 3x). Winnings hit your wallet the second the game ends.</div>
+    <a class="copybtn" style="float:none;display:inline-block;padding:10px 22px;font-size:14px;border-color:var(--accent);color:var(--accent)" href="/play">Play in your browser →</a>
+    <pre style="margin-top:12px"><span class="c"># or play via the API (stake pays via x402), moves are cells 0-8</span>
 POST BASE_URL/v1/game/normal
 POST BASE_URL/v1/game/&lt;id&gt;/move   {"cell": 4}</pre>
   </section>

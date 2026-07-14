@@ -14,6 +14,28 @@ export function feeCurrency(): `0x${string}` | undefined {
   return fc.startsWith("0x") ? (fc as `0x${string}`) : undefined;
 }
 
+/**
+ * Explicit CIP-64 fee params. Fees for a fee-currency tx are denominated in
+ * that currency's units, so we ask the node for the gas price in those units
+ * and set a 2x cap; auto-estimation sometimes lowballs it and the node
+ * rejects with "fee cap cannot be lower than block base fee".
+ */
+export async function feeParams(): Promise<Record<string, unknown>> {
+  const fc = feeCurrency();
+  if (!fc) return {};
+  try {
+    const gp = BigInt(
+      await publicClient.request({
+        method: "eth_gasPrice" as never,
+        params: [fc] as never,
+      }),
+    );
+    return { feeCurrency: fc, maxFeePerGas: gp * 2n, maxPriorityFeePerGas: gp / 5n };
+  } catch {
+    return { feeCurrency: fc };
+  }
+}
+
 let _wallet: WalletClient | null = null;
 
 export function walletClient(): WalletClient {

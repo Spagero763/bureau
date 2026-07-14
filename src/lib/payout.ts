@@ -1,5 +1,5 @@
 import { encodeFunctionData } from "viem";
-import { erc20Abi, feeCurrency, publicClient, walletClient } from "./celo.js";
+import { erc20Abi, feeParams, publicClient, walletClient } from "./celo.js";
 import { withAttribution } from "./attribution.js";
 import { config, USDC } from "../config.js";
 
@@ -28,7 +28,7 @@ export async function sendUsdc(to: string, amount: bigint): Promise<string> {
     data,
     chain: wallet.chain,
     account: wallet.account!,
-    feeCurrency: feeCurrency(),
+    ...(await feeParams()),
   } as Parameters<typeof wallet.sendTransaction>[0]);
   await publicClient.waitForTransactionReceipt({ hash, timeout: 60_000 });
   return hash;

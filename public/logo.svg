@@ -1,0 +1,30 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Bureau">
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="128" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1c1c1a"/>
+      <stop offset="1" stop-color="#0e0e0d"/>
+    </linearGradient>
+    <linearGradient id="tick" x1="30" y1="96" x2="104" y2="40" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#35c07a" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#35c07a" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#35c07a" stop-opacity="0.9"/>
+    </linearGradient>
+  </defs>
+
+  <!-- tile -->
+  <rect x="2" y="2" width="124" height="124" rx="30" fill="url(#tile)" stroke="#2c2c28" stroke-width="1.5"/>
+
+  <!-- background rate sparkline motif -->
+  <path d="M24 92 L42 84 L54 90 L70 66 L84 74 L104 46" stroke="url(#tick)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <circle cx="104" cy="46" r="4.5" fill="#35c07a"/>
+
+  <!-- geometric B monogram -->
+  <g stroke="#f4f3ee" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M44 34 L44 94"/>
+    <path d="M44 34 H66 A15 15 0 0 1 66 64 H44"/>
+    <path d="M44 64 H70 A15 15 0 0 1 70 94 H44"/>
+  </g>
+
+  <!-- Celo-yellow accent dot -->
+  <circle cx="90" cy="90" r="5" fill="#fcda2f"/>
+</svg>

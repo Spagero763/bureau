@@ -1,4 +1,5 @@
 import express from "express";
+import { join } from "node:path";
 import { config } from "./config.js";
 import { buildPaymentMiddleware } from "./x402.js";
 import { registerCatalogRoutes } from "./routes/catalog.js";
@@ -11,6 +12,10 @@ import { startHistorySampler } from "./desk/history.js";
 
 const app = express();
 app.use(express.json());
+
+// Static brand assets (logo.svg, banner.svg). index:false so "/" stays with
+// the catalog/dashboard handler below.
+app.use(express.static(join(process.cwd(), "public"), { index: false, extensions: [] }));
 
 // Free discovery routes go before the paywall.
 registerCatalogRoutes(app);

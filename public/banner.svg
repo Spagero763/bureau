@@ -1,0 +1,64 @@
+<svg width="1280" height="640" viewBox="0 0 1280 640" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Bureau — autonomous FX desk on Celo">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1280" y2="640" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#141413"/>
+      <stop offset="1" stop-color="#0b0b0a"/>
+    </linearGradient>
+    <linearGradient id="line" x1="120" y1="520" x2="1180" y2="150" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#e66461" stop-opacity="0.5"/>
+      <stop offset="0.55" stop-color="#4b93e7" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#35c07a" stop-opacity="0.7"/>
+    </linearGradient>
+    <linearGradient id="tileB" x1="0" y1="0" x2="0" y2="128" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#20201d"/>
+      <stop offset="1" stop-color="#0e0e0d"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1280" height="640" fill="url(#bg)"/>
+
+  <!-- faint grid -->
+  <g stroke="#ffffff" stroke-opacity="0.03" stroke-width="1">
+    <path d="M0 160 H1280 M0 320 H1280 M0 480 H1280"/>
+    <path d="M320 0 V640 M640 0 V640 M960 0 V640"/>
+  </g>
+
+  <!-- background FX rate line -->
+  <path d="M-20 500 L140 470 L260 500 L380 400 L520 440 L660 300 L800 350 L940 210 L1080 250 L1300 120"
+        stroke="url(#line)" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="1080" cy="250" r="6" fill="#4b93e7"/>
+  <circle cx="940" cy="210" r="6" fill="#35c07a"/>
+
+  <!-- ticker strip of currency codes -->
+  <g font-family="'JetBrains Mono','SFMono-Regular',Menlo,monospace" font-size="19" fill="#6f6e64" letter-spacing="1">
+    <text x="120" y="560">EUR  0.8749   BRL  5.117   KES  128.1   PHP  61.5   GHS  11.4   COP  4090   NGN  1531   ZAR  16.4   GBP  0.745</text>
+  </g>
+
+  <!-- logo mark -->
+  <g transform="translate(120,150)">
+    <rect x="0" y="0" width="128" height="128" rx="30" fill="url(#tileB)" stroke="#2c2c28" stroke-width="1.5"/>
+    <path d="M20 96 L40 86 L54 92 L74 62 L92 72 L112 42" stroke="#35c07a" stroke-opacity="0.6" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <circle cx="112" cy="42" r="4.5" fill="#35c07a"/>
+    <g stroke="#f4f3ee" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" fill="none">
+      <path d="M44 34 L44 94"/>
+      <path d="M44 34 H66 A15 15 0 0 1 66 64 H44"/>
+      <path d="M44 64 H70 A15 15 0 0 1 70 94 H44"/>
+    </g>
+    <circle cx="90" cy="90" r="5" fill="#fcda2f"/>
+  </g>
+
+  <!-- wordmark -->
+  <text x="290" y="228" font-family="'Space Grotesk','Helvetica Neue',Arial,sans-serif" font-size="96" font-weight="700" fill="#f4f3ee" letter-spacing="2">BUREAU</text>
+  <text x="294" y="286" font-family="'Space Grotesk','Helvetica Neue',Arial,sans-serif" font-size="30" font-weight="500" fill="#b4b3a8">An autonomous FX desk on Celo.</text>
+  <text x="294" y="326" font-family="'Space Grotesk','Helvetica Neue',Arial,sans-serif" font-size="22" font-weight="400" fill="#78776e">Trades the world's currencies onchain. Sells its data per call via x402.</text>
+
+  <!-- footer chips -->
+  <g font-family="'JetBrains Mono','SFMono-Regular',Menlo,monospace" font-size="17" fill="#8a897e">
+    <rect x="294" y="360" width="150" height="34" rx="17" fill="none" stroke="#2c2c28"/>
+    <text x="314" y="382">Celo mainnet</text>
+    <rect x="456" y="360" width="92" height="34" rx="17" fill="none" stroke="#2c2c28"/>
+    <text x="476" y="382">x402</text>
+    <rect x="560" y="360" width="128" height="34" rx="17" fill="none" stroke="#2c2c28"/>
+    <text x="580" y="382">ERC-8004</text>
+  </g>
+</svg>

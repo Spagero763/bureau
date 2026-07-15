@@ -1,0 +1,25 @@
+import "dotenv/config";
+import { createRequire } from "node:module";
+import { createPublicClient, createWalletClient, http, formatUnits } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
+import { celo } from "viem/chains";
+const require = createRequire(import.meta.url);
+const { Mento } = require("@mento-protocol/mento-sdk");
+const { deadlineFromMinutes } = require("@mento-protocol/mento-sdk");
+const RPC="https://forno.celo.org", USDM="0x765DE816845861e75A25fCA122bb6898B8B1282a";
+const pc=createPublicClient({chain:celo,transport:http(RPC)});
+const acct=privateKeyToAccount(process.env.AGENT_PRIVATE_KEY);
+const wc=createWalletClient({account:acct,chain:celo,transport:http(RPC)});
+const before=await pc.getBalance({address:acct.address});
+console.log("CELO before:",formatUnits(before,18));
+const block=await pc.getBlock({blockTag:"latest"});
+const gpFc=await pc.request({method:"eth_gasPrice",params:[USDM]}).then(v=>BigInt(v));
+const anchor=(block.baseFeePerGas??0n)>gpFc?(block.baseFeePerGas??0n):gpFc, tip=anchor/10n+1n;
+const fee={feeCurrency:USDM,maxFeePerGas:anchor*2n+tip,maxPriorityFeePerGas:tip};
+const m=await Mento.create(42220,pc);
+const p=await m.swap.prepareSwap({tokenIn:USDM,tokenOut:"0x471EcE3750Da237f93B8E339c536989b8978a438",amountIn:2000000000000000000n,slippageTolerance:1,recipient:acct.address,owner:acct.address,deadline:deadlineFromMinutes(5)});
+if(p.approval){const h=await wc.sendTransaction({to:p.approval.to,data:p.approval.data,...fee});await pc.waitForTransactionReceipt({hash:h,timeout:90000});console.log("approve ok");}
+const h=await wc.sendTransaction({to:p.params.to,data:p.params.data,...fee});const r=await pc.waitForTransactionReceipt({hash:h,timeout:90000});
+console.log("swap:",r.status,h);
+const after=await pc.getBalance({address:acct.address});
+console.log("CELO after:",formatUnits(after,18),"— gas tank refueled");

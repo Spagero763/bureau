@@ -31,7 +31,7 @@ interface CallParamsLike {
   value?: bigint | string;
 }
 
-async function sendTagged(params: CallParamsLike): Promise<string> {
+async function sendTagged(params: CallParamsLike, feeOverride?: `0x${string}`): Promise<string> {
   const wallet = walletClient();
   const hash = await wallet.sendTransaction({
     to: params.to as `0x${string}`,
@@ -39,10 +39,61 @@ async function sendTagged(params: CallParamsLike): Promise<string> {
     value: params.value === undefined ? undefined : BigInt(params.value),
     chain: wallet.chain,
     account: wallet.account!,
-    ...(await feeParams()),
+    ...(await feeParams(feeOverride)),
   } as Parameters<typeof wallet.sendTransaction>[0]);
   await publicClient.waitForTransactionReceipt({ hash, timeout: 90_000 });
   return hash;
+}
+
+const USDM_ADDR = "0x765DE816845861e75A25fCA122bb6898B8B1282a" as const;
+const CELO_ADDR = "0x471EcE3750Da237f93B8E339c536989b8978a438" as const;
+let refuelChecked = 0;
+
+/**
+ * Keep a small native-CELO gas tank topped up from USDm, so normal trades can
+ * pay gas in CELO (reliable, no fee-currency/trading collision). This one
+ * refuel swap pays ITS gas in USDm — safe because it spends only ~$2 USDm,
+ * leaving plenty of USDm balance to satisfy the fee-currency allowance check.
+ * Returns true if it performed a refuel (and the caller should skip trading).
+ */
+async function maybeRefuelGas(): Promise<boolean> {
+  const minCelo = parseUnits(process.env.DESK_MIN_CELO ?? "0.15", 18);
+  const topupUsd = process.env.DESK_CELO_TOPUP_USD ?? "2";
+  const now = Date.now();
+  if (now - refuelChecked < 60_000) return false; // at most once/min
+  refuelChecked = now;
+
+  const celoBal = await publicClient.getBalance({ address: config.agentAddress as `0x${string}` });
+  if (celoBal >= minCelo) return false;
+
+  const usdmBal = await publicClient.readContract({
+    address: USDM_ADDR,
+    abi: erc20Abi,
+    functionName: "balanceOf",
+    args: [config.agentAddress as `0x${string}`],
+  });
+  const amountIn = parseUnits(topupUsd, 18);
+  if (usdmBal < amountIn + parseUnits("1", 18)) return false; // keep $1 USDm buffer
+
+  try {
+    const m = await mento();
+    const prepared = await m.swap.prepareSwap({
+      tokenIn: USDM_ADDR,
+      tokenOut: CELO_ADDR,
+      amountIn,
+      slippageTolerance: 1,
+      recipient: config.agentAddress,
+      owner: config.agentAddress,
+      deadline: deadlineFromMinutes(5),
+    });
+    if (prepared.approval) await sendTagged(prepared.approval as CallParamsLike, USDM_ADDR);
+    if (prepared.params) await sendTagged(prepared.params as CallParamsLike, USDM_ADDR);
+    console.log(`[desk] refueled gas: swapped $${topupUsd} USDm -> CELO`);
+    return true;
+  } catch (e) {
+    console.warn("[desk] gas refuel failed:", e instanceof Error ? e.message.slice(0, 160) : e);
+    return false;
+  }
 }
 
 async function balanceOf(token: Token): Promise<bigint> {
@@ -124,6 +175,12 @@ export async function runCycle(): Promise<void> {
   }
 
   try {
+    // Keep the CELO gas tank topped up from USDm before doing anything else.
+    if (await maybeRefuelGas()) {
+      recordCycle();
+      return;
+    }
+
     const [{ usdPer }, tokens] = await Promise.all([referenceRates(), stableTokens()]);
     const base = tokens.find((t) => t.symbol.toLowerCase() === config.desk.baseSymbol.toLowerCase());
     if (!base) throw new Error(`base token ${config.desk.baseSymbol} not found on Mento`);

@@ -20,8 +20,8 @@ export function feeCurrency(): `0x${string}` | undefined {
  * and set a 2x cap; auto-estimation sometimes lowballs it and the node
  * rejects with "fee cap cannot be lower than block base fee".
  */
-export async function feeParams(): Promise<Record<string, unknown>> {
-  const fc = feeCurrency();
+export async function feeParams(override?: `0x${string}`): Promise<Record<string, unknown>> {
+  const fc = override ?? feeCurrency();
   if (!fc) return {};
   try {
     // The node validates the cap against the block base fee, while the

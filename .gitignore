@@ -15,3 +15,6 @@ skills-lock.json
 data/
 *.key
 *.pem
+
+# operational tooling (local only)
+scripts/askbots-submit.mjs

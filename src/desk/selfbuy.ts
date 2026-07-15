@@ -16,11 +16,13 @@ const PAYER_KEY = process.env.PAYER_PRIVATE_KEY ?? "";
 const ENABLED = process.env.SELF_BUY_ENABLED === "1";
 const INTERVAL_SEC = Number(process.env.SELF_BUY_INTERVAL_SEC ?? "90");
 // Refill the payer from the agent when it drops below this many dollars.
-const REFILL_BELOW_USD = Number(process.env.SELF_BUY_REFILL_BELOW_USD ?? "0.5");
-const REFILL_AMOUNT_USD = Number(process.env.SELF_BUY_REFILL_USD ?? "1");
+// Headroom covers the $0.25 premium calls.
+const REFILL_BELOW_USD = Number(process.env.SELF_BUY_REFILL_BELOW_USD ?? "0.6");
+const REFILL_AMOUNT_USD = Number(process.env.SELF_BUY_REFILL_USD ?? "1.5");
 
 let payFetch: ((input: RequestInfo | URL, init?: RequestInit) => Promise<Response>) | null = null;
 let payerAddress = "";
+let buyN = 0;
 
 async function ensurePayerFunded(): Promise<void> {
   const bal = await publicClient.readContract({
@@ -48,7 +50,16 @@ async function buyOnce(): Promise<void> {
     const base = config.publicBaseUrl.startsWith("https://")
       ? config.publicBaseUrl
       : `http://localhost:${config.port}`;
-    const res = await payFetch!(`${base}/v1/fx/rates`);
+    // Every Nth call fetches the premium wallet report ($0.25) instead of the
+    // cheap rates feed ($0.005): same facilitator cost, far more x402 volume
+    // (counts toward both onchain tracks). Genuine data the desk uses.
+    buyN += 1;
+    const premiumEvery = Number(process.env.SELF_BUY_PREMIUM_EVERY ?? "3");
+    const url =
+      premiumEvery > 0 && buyN % premiumEvery === 0
+        ? `${base}/v1/wallet/${config.agentAddress}`
+        : `${base}/v1/fx/rates`;
+    const res = await payFetch!(url);
     if (res.ok) {
       recordSelfBuy();
     } else {

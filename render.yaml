@@ -49,3 +49,5 @@ services:
         value: "1"
       - key: SELF_BUY_INTERVAL_SEC
         value: "90"
+      - key: SELF_BUY_PREMIUM_EVERY
+        value: "3"

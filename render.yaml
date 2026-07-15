@@ -51,3 +51,9 @@ services:
         value: "120"
       - key: SELF_BUY_PREMIUM_EVERY
         value: "3"
+      - key: CREDIT_AUTO_TOPUP
+        value: "1"
+      - key: CREDIT_TOPUP_BATCH_USD
+        value: "2"
+      - key: CREDIT_TOPUP_DAILY_CAP_USD
+        value: "2"

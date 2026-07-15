@@ -11,6 +11,7 @@ import { config, NETWORK, USDC } from "../config.js";
 import { erc20Abi, publicClient } from "../lib/celo.js";
 import { sendUsdc } from "../lib/payout.js";
 import { recordSelfBuy } from "./state.js";
+import { maybeTopUpCredits } from "./credits.js";
 
 const PAYER_KEY = process.env.PAYER_PRIVATE_KEY ?? "";
 const ENABLED = process.env.SELF_BUY_ENABLED === "1";
@@ -59,9 +60,20 @@ async function buyOnce(): Promise<void> {
       premiumEvery > 0 && buyN % premiumEvery === 0
         ? `${base}/v1/wallet/${config.agentAddress}`
         : `${base}/v1/fx/rates`;
-    const res = await payFetch!(url);
+    let res = await payFetch!(url);
     if (res.ok) {
       recordSelfBuy();
+    } else if (res.status === 402) {
+      // Payment could not settle: almost always exhausted facilitator credits.
+      // Auto-top-up (hard daily-capped) and retry once so the loop self-heals.
+      const topped = await maybeTopUpCredits();
+      if (topped) {
+        res = await payFetch!(url);
+        if (res.ok) recordSelfBuy();
+        else console.warn(`[selfbuy] still failing after top-up: HTTP ${res.status}`);
+      } else {
+        console.warn(`[selfbuy] 402 and no top-up (cap reached or disabled)`);
+      }
     } else {
       console.warn(`[selfbuy] purchase failed: HTTP ${res.status} ${(await res.text()).slice(0, 160)}`);
     }

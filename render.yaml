@@ -41,6 +41,8 @@ services:
         value: "1"
       - key: DESK_MAX_ROTATION_COST_BPS
         value: "20"
+      - key: DESK_REBALANCE_COST_BPS
+        value: "120"
       - key: DESK_DAILY_COST_CAP_USD
         value: "1.5"
       - key: DESK_SLIPPAGE

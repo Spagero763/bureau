@@ -182,18 +182,19 @@ export async function runCycle(): Promise<void> {
     }
 
     const [{ usdPer }, tokens] = await Promise.all([referenceRates(), stableTokens()]);
-    const base = tokens.find((t) => t.symbol.toLowerCase() === config.desk.baseSymbol.toLowerCase());
-    if (!base) throw new Error(`base token ${config.desk.baseSymbol} not found on Mento`);
 
     // Self-discovery: trade everything Mento lists unless explicitly restricted.
     // Bridged USD stables are included as routes too: Mento lists only its own
     // stables, but USDm<->USDC/USDT quote an order of magnitude tighter than the
-    // FX pairs, so capital recycles at a fraction of the spread.
+    // FX pairs, so capital recycles at a fraction of the spread. The base may
+    // itself be a bridged token (e.g. USDC).
     const bridged: Token[] = [
       { address: USDC.address, symbol: "USDC", decimals: USDC.decimals, name: "USD Coin" } as Token,
       { address: "0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e", symbol: "USDT", decimals: 6, name: "Tether USD" } as Token,
     ];
     const universe = [...tokens, ...bridged];
+    const base = universe.find((t) => t.symbol.toLowerCase() === config.desk.baseSymbol.toLowerCase());
+    if (!base) throw new Error(`base token ${config.desk.baseSymbol} not found`);
     const counters = universe.filter(
       (t) =>
         t.address.toLowerCase() !== base.address.toLowerCase() &&

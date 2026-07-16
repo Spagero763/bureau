@@ -18,7 +18,7 @@ const require = createRequire(import.meta.url);
 const { deadlineFromMinutes } = require("@mento-protocol/mento-sdk") as {
   deadlineFromMinutes: (minutes: number) => bigint;
 };
-import { config } from "../config.js";
+import { config, USDC } from "../config.js";
 import { feeParams, publicClient, walletClient, erc20Abi } from "../lib/celo.js";
 import { withAttribution } from "../lib/attribution.js";
 import { mento, stableTokens, quote, tokenBySymbol } from "./mento.js";
@@ -186,9 +186,17 @@ export async function runCycle(): Promise<void> {
     if (!base) throw new Error(`base token ${config.desk.baseSymbol} not found on Mento`);
 
     // Self-discovery: trade everything Mento lists unless explicitly restricted.
-    const counters = tokens.filter(
+    // Bridged USD stables are included as routes too: Mento lists only its own
+    // stables, but USDm<->USDC/USDT quote an order of magnitude tighter than the
+    // FX pairs, so capital recycles at a fraction of the spread.
+    const bridged: Token[] = [
+      { address: USDC.address, symbol: "USDC", decimals: USDC.decimals, name: "USD Coin" } as Token,
+      { address: "0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e", symbol: "USDT", decimals: 6, name: "Tether USD" } as Token,
+    ];
+    const universe = [...tokens, ...bridged];
+    const counters = universe.filter(
       (t) =>
-        t.address !== base.address &&
+        t.address.toLowerCase() !== base.address.toLowerCase() &&
         (config.desk.counterSymbols.length === 0 ||
           config.desk.counterSymbols.some((s) => s.toLowerCase() === t.symbol.toLowerCase())),
     );
@@ -260,10 +268,12 @@ export async function runCycle(): Promise<void> {
         .filter((x) => x.edgeBps >= config.desk.minEdgeBps)
         .sort((a, b) => b.edgeBps - a.edgeBps)
         .map((c) => ({ c, kind: "edge" as const })),
+      // Rotations exist to keep capital moving, so pick the cheapest route,
+      // not the best edge: spread is the only thing they cost.
       ...(config.desk.rotation
         ? candidates
             .filter((x) => x.edgeBps < config.desk.minEdgeBps && x.roundTripCostBps <= config.desk.maxRotationCostBps)
-            .sort((a, b) => b.edgeBps - a.edgeBps)
+            .sort((a, b) => a.roundTripCostBps - b.roundTripCostBps)
             .map((c) => ({ c, kind: "rotation" as const }))
         : []),
     ];

@@ -32,7 +32,7 @@ services:
       - key: DESK_PAIRS
         value: ""
       - key: DESK_TRADE_USD
-        value: "8"
+        value: "12"
       - key: DESK_INTERVAL_SEC
         value: "120"
       - key: DESK_MIN_EDGE_BPS

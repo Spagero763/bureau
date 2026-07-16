@@ -20,8 +20,8 @@ export function feeCurrency(): `0x${string}` | undefined {
  * and set a 2x cap; auto-estimation sometimes lowballs it and the node
  * rejects with "fee cap cannot be lower than block base fee".
  */
-export async function feeParams(override?: `0x${string}`): Promise<Record<string, unknown>> {
-  const fc = override ?? feeCurrency();
+export async function feeParams(gasLimit?: bigint): Promise<Record<string, unknown>> {
+  const fc = feeCurrency();
   if (!fc) return {};
   try {
     // The node validates the cap against the block base fee, while the
@@ -42,9 +42,17 @@ export async function feeParams(override?: `0x${string}`): Promise<Record<string
     // that a small stablecoin balance still passes the node's allowance check
     // (allowance = balance / maxFeePerGas).
     const tip = anchor / 10n + 1n;
-    return { feeCurrency: fc, maxFeePerGas: anchor * 2n + tip, maxPriorityFeePerGas: tip };
+    // Explicit gas limit: the node's estimator rejects fee-currency txs with
+    // "gas required exceeds allowance", so we skip estimation entirely.
+    // Unused gas is refunded, so a generous limit costs nothing.
+    return {
+      feeCurrency: fc,
+      maxFeePerGas: anchor * 2n + tip,
+      maxPriorityFeePerGas: tip,
+      gas: gasLimit ?? 250_000n,
+    };
   } catch {
-    return { feeCurrency: fc };
+    return { feeCurrency: fc, gas: gasLimit ?? 250_000n };
   }
 }
 

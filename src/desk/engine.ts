@@ -31,7 +31,7 @@ interface CallParamsLike {
   value?: bigint | string;
 }
 
-async function sendTagged(params: CallParamsLike, feeOverride?: `0x${string}`): Promise<string> {
+async function sendTagged(params: CallParamsLike): Promise<string> {
   const wallet = walletClient();
   const hash = await wallet.sendTransaction({
     to: params.to as `0x${string}`,
@@ -39,7 +39,7 @@ async function sendTagged(params: CallParamsLike, feeOverride?: `0x${string}`): 
     value: params.value === undefined ? undefined : BigInt(params.value),
     chain: wallet.chain,
     account: wallet.account!,
-    ...(await feeParams(feeOverride)),
+    ...(await feeParams(700_000n)), // swaps route through the Mento router
   } as Parameters<typeof wallet.sendTransaction>[0]);
   await publicClient.waitForTransactionReceipt({ hash, timeout: 90_000 });
   return hash;
@@ -86,8 +86,8 @@ async function maybeRefuelGas(): Promise<boolean> {
       owner: config.agentAddress,
       deadline: deadlineFromMinutes(5),
     });
-    if (prepared.approval) await sendTagged(prepared.approval as CallParamsLike, USDM_ADDR);
-    if (prepared.params) await sendTagged(prepared.params as CallParamsLike, USDM_ADDR);
+    if (prepared.approval) await sendTagged(prepared.approval as CallParamsLike);
+    if (prepared.params) await sendTagged(prepared.params as CallParamsLike);
     console.log(`[desk] refueled gas: swapped $${topupUsd} USDm -> CELO`);
     return true;
   } catch (e) {

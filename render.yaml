@@ -22,19 +22,19 @@ services:
       - key: ADMIN_TOKEN
         sync: false
       - key: FEE_CURRENCY
-        value: ""
+        value: "0x765DE816845861e75A25fCA122bb6898B8B1282a"
       - key: AGENT_NAME
         value: "Bureau"
       - key: DESK_ENABLED
         value: "1"
       - key: DESK_BASE
-        value: "USDm"
+        value: "USDC"
       - key: DESK_PAIRS
-        value: ""
+        value: "USDT,EURm,BRLm,KESm,PHPm,GHSm,COPm,XOFm,NGNm,ZARm,GBPm,CADm,AUDm,CHFm,JPYm"
       - key: DESK_TRADE_USD
         value: "12"
       - key: DESK_INTERVAL_SEC
-        value: "120"
+        value: "90"
       - key: DESK_MIN_EDGE_BPS
         value: "6"
       - key: DESK_ROTATION
@@ -42,15 +42,15 @@ services:
       - key: DESK_MAX_ROTATION_COST_BPS
         value: "20"
       - key: DESK_DAILY_COST_CAP_USD
-        value: "1.0"
+        value: "1.5"
       - key: DESK_SLIPPAGE
         value: "0.3"
       - key: SELF_BUY_ENABLED
         value: "1"
       - key: SELF_BUY_INTERVAL_SEC
-        value: "120"
+        value: "45"
       - key: SELF_BUY_PREMIUM_EVERY
-        value: "3"
+        value: "2"
       - key: CREDIT_AUTO_TOPUP
         value: "1"
       - key: CREDIT_TOPUP_BATCH_USD

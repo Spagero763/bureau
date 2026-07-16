@@ -27,7 +27,7 @@ export function latestRates() {
 
 export async function sampleOnce(): Promise<void> {
   const [{ usdPer }, tokens] = await Promise.all([referenceRates(), stableTokens()]);
-  const base = await tokenBySymbol(config.desk.baseSymbol);
+  const base = await tokenBySymbol(process.env.FX_PRICING_BASE ?? "USDm");
   if (!base) return;
   const probe = parseUnits("10", base.decimals);
   const now = Date.now();

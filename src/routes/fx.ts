@@ -17,7 +17,7 @@ export function registerFxRoutes(app: Express) {
   app.get("/v1/fx/rates", async (_req: Request, res: Response) => {
     try {
       const [{ usdPer, asOf }, tokens] = await Promise.all([referenceRates(), stableTokens()]);
-      const base = await tokenBySymbol(config.desk.baseSymbol);
+      const base = await tokenBySymbol(process.env.FX_PRICING_BASE ?? "USDm");
       if (!base) return fail(res, 500, "base token unavailable");
       const probe = parseUnits("10", base.decimals); // $10 probe for implied price
 
@@ -85,7 +85,7 @@ export function registerFxRoutes(app: Express) {
     if (previewCache && Date.now() - previewCache.at < 60_000) return res.json(previewCache.body);
     try {
       const [{ usdPer }, tokens] = await Promise.all([referenceRates(), stableTokens()]);
-      const base = await tokenBySymbol(config.desk.baseSymbol);
+      const base = await tokenBySymbol(process.env.FX_PRICING_BASE ?? "USDm");
       if (!base) return fail(res, 500, "base token unavailable");
       const probe = parseUnits("10", base.decimals);
       const rows = await Promise.all(

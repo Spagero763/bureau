@@ -4,7 +4,7 @@ import { config } from "../config.js";
 import { quote, stableTokens, tokenBySymbol } from "../desk/mento.js";
 import { currencyOfSymbol, referenceRates } from "../desk/reference.js";
 import { deskState, setPaused } from "../desk/state.js";
-import { history, latestRates } from "../desk/history.js";
+import { history } from "../desk/history.js";
 
 function fail(res: Response, status: number, message: string) {
   res.status(status).json({ error: message });
@@ -78,49 +78,56 @@ export function registerFxRoutes(app: Express) {
     }
   });
 
-  // FREE: delayed, rounded FX preview for the dashboard (60s cache).
-  // The precise, machine-grade table is the paid /v1/fx/rates.
-  let previewCache: { at: number; body: unknown } | null = null;
+  // Shared market computation with a 60s cache and last-good fallback, so a
+  // transient RPC hiccup never blanks the dashboard table.
+  let marketCache: { at: number; rows: { symbol: string; currency: string | null; onchainUsd: number; referenceUsd: number | null }[] } = { at: 0, rows: [] };
+  async function computeMarkets() {
+    if (Date.now() - marketCache.at < 60_000 && marketCache.rows.length > 0) return marketCache.rows;
+    const [{ usdPer }, tokens] = await Promise.all([referenceRates(), stableTokens()]);
+    const base = await tokenBySymbol(process.env.FX_PRICING_BASE ?? "USDm");
+    if (!base) return marketCache.rows;
+    const probe = parseUnits("10", base.decimals);
+    const rows: typeof marketCache.rows = [];
+    for (const t of tokens) {
+      if (t.address === base.address) continue;
+      const out = await quote(base.address, t.address, probe).catch(() => 0n);
+      if (out === 0n) continue;
+      const cur = currencyOfSymbol(t.symbol);
+      const impliedUsd = 10 / Number(formatUnits(out, t.decimals));
+      rows.push({
+        symbol: t.symbol,
+        currency: cur,
+        onchainUsd: Math.round(impliedUsd * 1e4) / 1e4,
+        referenceUsd: cur && usdPer[cur] ? Math.round(usdPer[cur] * 1e4) / 1e4 : null,
+      });
+    }
+    // keep last-good unless the fresh set is at least as complete
+    if (rows.length >= Math.max(3, marketCache.rows.length)) marketCache = { at: Date.now(), rows };
+    return marketCache.rows;
+  }
+
+  // FREE: dashboard market table (fresh + cached, not sampler-dependent).
   app.get("/v1/fx/preview", async (_req: Request, res: Response) => {
-    if (previewCache && Date.now() - previewCache.at < 60_000) return res.json(previewCache.body);
     try {
-      const [{ usdPer }, tokens] = await Promise.all([referenceRates(), stableTokens()]);
-      const base = await tokenBySymbol(process.env.FX_PRICING_BASE ?? "USDm");
-      if (!base) return fail(res, 500, "base token unavailable");
-      const probe = parseUnits("10", base.decimals);
-      const rows = await Promise.all(
-        tokens
-          .filter((t) => t.address !== base.address)
-          .map(async (t) => {
-            const cur = currencyOfSymbol(t.symbol);
-            const ref = cur ? (usdPer[cur] ?? null) : null;
-            const out = await quote(base.address, t.address, probe).catch(() => 0n);
-            if (out === 0n || !ref) return null;
-            const impliedUsd = 10 / Number(formatUnits(out, t.decimals));
-            return {
-              symbol: t.symbol,
-              currency: cur,
-              onchainUsd: Math.round(impliedUsd * 1e4) / 1e4,
-              referenceUsd: Math.round(ref * 1e4) / 1e4,
-            };
-          }),
-      );
-      const body = { base: base.symbol, delayed: true, asOf: new Date().toISOString(), rates: rows.filter(Boolean) };
-      previewCache = { at: Date.now(), body };
-      res.json(body);
+      const rows = await computeMarkets();
+      res.json({ base: "USDm", delayed: true, asOf: new Date().toISOString(), rates: rows });
     } catch (e) {
       fail(res, 502, e instanceof Error ? e.message : "preview unavailable");
+    }
+  });
+
+  app.get("/v1/fx/markets", async (_req: Request, res: Response) => {
+    try {
+      const rows = await computeMarkets();
+      res.json({ asOf: new Date().toISOString(), rates: rows });
+    } catch (e) {
+      fail(res, 502, e instanceof Error ? e.message : "markets unavailable");
     }
   });
 
   // FREE: sampled price history for sparklines (in-memory, resets on restart).
   app.get("/v1/fx/history", (_req: Request, res: Response) => {
     res.json(history());
-  });
-
-  // FREE: latest sampled market rows (faster than preview, refreshed by the sampler).
-  app.get("/v1/fx/markets", (_req: Request, res: Response) => {
-    res.json(latestRates());
   });
 
   // FREE: desk stats for the dashboard and anyone watching.

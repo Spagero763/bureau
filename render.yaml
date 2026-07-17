@@ -50,11 +50,11 @@ services:
       - key: SELF_BUY_ENABLED
         value: "1"
       - key: SELF_BUY_INTERVAL_SEC
-        value: "45"
+        value: "80"
       - key: SELF_BUY_PREMIUM_EVERY
         value: "2"
       - key: CREDIT_AUTO_TOPUP
-        value: "1"
+        value: "0"
       - key: CREDIT_TOPUP_BATCH_USD
         value: "2"
       - key: CREDIT_TOPUP_DAILY_CAP_USD

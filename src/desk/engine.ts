@@ -206,7 +206,9 @@ export async function runCycle(): Promise<void> {
     // Adaptive sizing: use the configured notional when the base balance
     // covers it, otherwise trade whatever base is available (floor $1),
     // always keeping headroom because gas is paid in the base currency.
-    const gasReserve = parseUnits("0.5", base.decimals);
+    // When the base is also the gas currency, keep a larger buffer so trades
+    // never eat the gas fuel.
+    const gasReserve = parseUnits("1.5", base.decimals);
     const baseBalRaw = await balanceOf(base);
     const baseBal = baseBalRaw > gasReserve ? baseBalRaw - gasReserve : 0n;
     const configured = parseUnits(config.desk.tradeUsd.toString(), base.decimals);

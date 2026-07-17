@@ -28,9 +28,9 @@ services:
       - key: DESK_ENABLED
         value: "1"
       - key: DESK_BASE
-        value: "USDC"
+        value: "USDm"
       - key: DESK_PAIRS
-        value: "USDT,EURm,BRLm,KESm,PHPm,GHSm,COPm,XOFm,NGNm,ZARm,GBPm,CADm,AUDm,CHFm,JPYm"
+        value: "USDC,USDT,EURm,BRLm,KESm,PHPm,GHSm,COPm,XOFm,NGNm,ZARm,GBPm,CADm,AUDm,CHFm,JPYm"
       - key: DESK_TRADE_USD
         value: "12"
       - key: DESK_INTERVAL_SEC

@@ -26,7 +26,7 @@ services:
       - key: AGENT_NAME
         value: "Bureau"
       - key: DESK_ENABLED
-        value: "1"
+        value: "0"
       - key: DESK_BASE
         value: "USDm"
       - key: DESK_PAIRS
@@ -50,7 +50,7 @@ services:
       - key: SELF_BUY_ENABLED
         value: "1"
       - key: SELF_BUY_INTERVAL_SEC
-        value: "80"
+        value: "85"
       - key: SELF_BUY_PREMIUM_EVERY
         value: "2"
       - key: CREDIT_AUTO_TOPUP

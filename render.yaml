@@ -22,7 +22,7 @@ services:
       - key: ADMIN_TOKEN
         sync: false
       - key: FEE_CURRENCY
-        value: "0x765DE816845861e75A25fCA122bb6898B8B1282a"
+        value: ""
       - key: AGENT_NAME
         value: "Bureau"
       - key: DESK_ENABLED

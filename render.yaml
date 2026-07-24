@@ -50,7 +50,7 @@ services:
       - key: SELF_BUY_ENABLED
         value: "1"
       - key: SELF_BUY_INTERVAL_SEC
-        value: "55"
+        value: "15"
       - key: SELF_BUY_PREMIUM_EVERY
         value: "0"
       - key: SELF_BUY_REFILL_USD

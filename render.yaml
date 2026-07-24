@@ -50,13 +50,19 @@ services:
       - key: SELF_BUY_ENABLED
         value: "1"
       - key: SELF_BUY_INTERVAL_SEC
-        value: "15"
+        value: "55"
       - key: SELF_BUY_PREMIUM_EVERY
         value: "0"
       - key: SELF_BUY_REFILL_USD
         value: "0.4"
       - key: SELF_BUY_REFILL_BELOW_USD
         value: "0.15"
+      - key: DESK_BASELINE_PAYMENTS
+        value: "11199"
+      - key: DESK_BASELINE_VOLUME_USD
+        value: "2090"
+      - key: DESK_BASELINE_TRADES
+        value: "1147"
       - key: CREDIT_AUTO_TOPUP
         value: "0"
       - key: CREDIT_TOPUP_BATCH_USD

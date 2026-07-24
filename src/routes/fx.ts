@@ -131,15 +131,22 @@ export function registerFxRoutes(app: Express) {
   });
 
   // FREE: desk stats for the dashboard and anyone watching.
+  // Cumulative counters survive restarts by adding a committed baseline (the
+  // real onchain totals) to the in-memory count since this instance booted -
+  // Render's disk is ephemeral, so without this the dashboard would reset to
+  // zero on every redeploy.
+  const baseVol = Number(process.env.DESK_BASELINE_VOLUME_USD ?? "0");
+  const baseTrades = Number(process.env.DESK_BASELINE_TRADES ?? "0");
+  const basePayments = Number(process.env.DESK_BASELINE_PAYMENTS ?? "0");
   app.get("/v1/desk", (_req: Request, res: Response) => {
     const s = deskState();
     res.json({
       enabled: config.desk.enabled,
       paused: s.paused,
       startedAt: s.startedAt,
-      totalVolumeUsd: Math.round(s.totalVolumeUsd * 100) / 100,
-      totalTrades: s.totalTrades,
-      x402SelfBuys: s.selfBuys,
+      totalVolumeUsd: Math.round((baseVol + s.totalVolumeUsd) * 100) / 100,
+      totalTrades: baseTrades + s.totalTrades,
+      x402SelfBuys: basePayments + s.selfBuys,
       today: {
         volumeUsd: Math.round(s.dayVolumeUsd * 100) / 100,
         costUsd: Math.round(s.dayCostUsd * 10000) / 10000,

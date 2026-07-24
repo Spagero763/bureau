@@ -135,9 +135,10 @@ export function registerFxRoutes(app: Express) {
   // real onchain totals) to the in-memory count since this instance booted -
   // Render's disk is ephemeral, so without this the dashboard would reset to
   // zero on every redeploy.
-  // Real onchain cumulative totals as of 2026-07-23 (from the Dune leaderboard),
-  // hardcoded so they apply on deploy without needing a Render env-var sync.
-  const baseVol = Number(process.env.DESK_BASELINE_VOLUME_USD ?? "2090");
+  // Real onchain cumulative totals from the Dune leaderboard (updated 2026-07-23:
+  // tagged volume $3,298), hardcoded so they apply on deploy without a Render
+  // env-var sync. Conservative snapshots; the live count only grows from here.
+  const baseVol = Number(process.env.DESK_BASELINE_VOLUME_USD ?? "3298");
   const baseTrades = Number(process.env.DESK_BASELINE_TRADES ?? "1147");
   const basePayments = Number(process.env.DESK_BASELINE_PAYMENTS ?? "11199");
   app.get("/v1/desk", (_req: Request, res: Response) => {

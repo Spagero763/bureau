@@ -8,4 +8,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: ping service
-        run: curl -sf --max-time 30 https://bureau-fnw3.onrender.com/healthz || true
+        run: curl -sf --max-time 30 https://bureau-theta.vercel.app/healthz || true

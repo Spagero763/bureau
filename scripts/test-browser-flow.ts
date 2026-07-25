@@ -7,7 +7,7 @@ import { randomBytes } from "node:crypto";
 import { privateKeyToAccount } from "viem/accounts";
 import { botMove, type Board } from "../src/lib/tictactoe.js";
 
-const BASE = process.env.DEMO_BASE_URL ?? "https://bureau-fnw3.onrender.com";
+const BASE = process.env.DEMO_BASE_URL ?? "https://bureau-theta.vercel.app";
 const account = privateKeyToAccount(process.env.PAYER_PRIVATE_KEY as `0x${string}`);
 
 const b64 = (o: unknown) => Buffer.from(JSON.stringify(o)).toString("base64");

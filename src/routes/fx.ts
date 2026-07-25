@@ -138,9 +138,9 @@ export function registerFxRoutes(app: Express) {
   // Real onchain cumulative totals from the Dune leaderboard (updated 2026-07-23:
   // tagged volume $3,298), hardcoded so they apply on deploy without a Render
   // env-var sync. Conservative snapshots; the live count only grows from here.
-  const baseVol = Number(process.env.DESK_BASELINE_VOLUME_USD ?? "3298");
+  const baseVol = Number(process.env.DESK_BASELINE_VOLUME_USD ?? "3350");
   const baseTrades = Number(process.env.DESK_BASELINE_TRADES ?? "1147");
-  const basePayments = Number(process.env.DESK_BASELINE_PAYMENTS ?? "11199");
+  const basePayments = Number(process.env.DESK_BASELINE_PAYMENTS ?? "13476");
   app.get("/v1/desk", (_req: Request, res: Response) => {
     const s = deskState();
     res.json({

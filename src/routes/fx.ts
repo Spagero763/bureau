@@ -180,10 +180,14 @@ export function registerFxRoutes(app: Express) {
       enabled: config.desk.enabled,
       paused: s.paused,
       startedAt: s.startedAt,
-      totalVolumeUsd:
-        Math.round((baseVol + s.totalVolumeUsd + settled * PRICE_PER_CALL_USD) * 100) / 100,
-      totalTrades: baseTrades + s.totalTrades,
-      x402SelfBuys: basePayments + s.selfBuys + settled,
+      // Cumulative figures come from the verified onchain baseline plus what the
+      // credit meter has settled since. Deliberately not added to: this process's
+      // own counters, which restored-from-cache state can carry over from an
+      // earlier run and which the baseline already includes - double counting
+      // would report more activity than exists onchain.
+      totalVolumeUsd: Math.round((baseVol + settled * PRICE_PER_CALL_USD) * 100) / 100,
+      totalTrades: baseTrades,
+      x402SelfBuys: basePayments + settled,
       today: {
         volumeUsd: Math.round(s.dayVolumeUsd * 100) / 100,
         costUsd: Math.round(s.dayCostUsd * 10000) / 10000,

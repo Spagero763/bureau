@@ -138,15 +138,19 @@ export function registerFxRoutes(app: Express) {
   // Real onchain cumulative totals from the Dune leaderboard (updated 2026-07-23:
   // tagged volume $3,298), hardcoded so they apply on deploy without a Render
   // env-var sync. Conservative snapshots; the live count only grows from here.
-  const baseVol = Number(process.env.DESK_BASELINE_VOLUME_USD ?? "3350");
+  const baseVol = Number(process.env.DESK_BASELINE_VOLUME_USD ?? "3298");
   const baseTrades = Number(process.env.DESK_BASELINE_TRADES ?? "1147");
-  const basePayments = Number(process.env.DESK_BASELINE_PAYMENTS ?? "13476");
+  const basePayments = Number(process.env.DESK_BASELINE_PAYMENTS ?? "13936");
   // The settlement loop runs on a long-lived worker, not in this web process, so
   // in-memory counters here stay at zero. The facilitator's credit balance is the
   // meter for that work: one credit is burned per settled payment, so the live
   // cumulative count is the committed baseline plus credits spent since it was
   // taken. Cached briefly so the dashboard's polling does not hammer the API.
-  const anchorCredits = Number(process.env.DESK_ANCHOR_CREDITS ?? "9909");
+  // Must be the credit balance observed at the same moment as the payment
+  // baseline above, or every derived reading inherits the offset. Both were read
+  // together off the onchain leaderboard, and the leaderboard lags slightly, so
+  // the derived count errs low rather than overstating.
+  const anchorCredits = Number(process.env.DESK_ANCHOR_CREDITS ?? "9367");
   const PRICE_PER_CALL_USD = Number(config.prices.lookup) / 1e6;
   let creditCache: { credits: number; at: number } | null = null;
 

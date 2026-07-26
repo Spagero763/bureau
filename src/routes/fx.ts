@@ -141,15 +141,45 @@ export function registerFxRoutes(app: Express) {
   const baseVol = Number(process.env.DESK_BASELINE_VOLUME_USD ?? "3350");
   const baseTrades = Number(process.env.DESK_BASELINE_TRADES ?? "1147");
   const basePayments = Number(process.env.DESK_BASELINE_PAYMENTS ?? "13476");
-  app.get("/v1/desk", (_req: Request, res: Response) => {
+  // The settlement loop runs on a long-lived worker, not in this web process, so
+  // in-memory counters here stay at zero. The facilitator's credit balance is the
+  // meter for that work: one credit is burned per settled payment, so the live
+  // cumulative count is the committed baseline plus credits spent since it was
+  // taken. Cached briefly so the dashboard's polling does not hammer the API.
+  const anchorCredits = Number(process.env.DESK_ANCHOR_CREDITS ?? "9909");
+  const PRICE_PER_CALL_USD = Number(config.prices.lookup) / 1e6;
+  let creditCache: { credits: number; at: number } | null = null;
+
+  async function creditsSpent(): Promise<number> {
+    const fresh = creditCache && Date.now() - creditCache.at < 30_000;
+    if (!fresh) {
+      try {
+        const r = await fetch(
+          `https://x402.celo.org/api/account?address=${config.agentAddress}`,
+          { signal: AbortSignal.timeout(6000) },
+        );
+        const j = (await r.json()) as { balances?: { mainnet?: number } };
+        const c = j?.balances?.mainnet;
+        if (typeof c === "number") creditCache = { credits: c, at: Date.now() };
+      } catch {
+        // keep the last good reading; the baseline alone is still correct
+      }
+    }
+    if (!creditCache) return 0;
+    return Math.max(0, anchorCredits - creditCache.credits);
+  }
+
+  app.get("/v1/desk", async (_req: Request, res: Response) => {
     const s = deskState();
+    const settled = await creditsSpent();
     res.json({
       enabled: config.desk.enabled,
       paused: s.paused,
       startedAt: s.startedAt,
-      totalVolumeUsd: Math.round((baseVol + s.totalVolumeUsd) * 100) / 100,
+      totalVolumeUsd:
+        Math.round((baseVol + s.totalVolumeUsd + settled * PRICE_PER_CALL_USD) * 100) / 100,
       totalTrades: baseTrades + s.totalTrades,
-      x402SelfBuys: basePayments + s.selfBuys,
+      x402SelfBuys: basePayments + s.selfBuys + settled,
       today: {
         volumeUsd: Math.round(s.dayVolumeUsd * 100) / 100,
         costUsd: Math.round(s.dayCostUsd * 10000) / 10000,

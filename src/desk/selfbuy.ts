@@ -25,7 +25,14 @@ let payFetch: ((input: RequestInfo | URL, init?: RequestInit) => Promise<Respons
 let payerAddress = "";
 let buyN = 0;
 
-async function ensurePayerFunded(): Promise<void> {
+// A settlement round-trip takes far longer than the tick interval, so purchases
+// run concurrently up to this many at once; lowering the interval alone cannot
+// raise throughput past one-per-round-trip.
+const CONCURRENCY = Math.max(1, Number(process.env.SELF_BUY_CONCURRENCY ?? "1"));
+
+let refillInFlight: Promise<void> | null = null;
+
+async function refill(): Promise<void> {
   const bal = await publicClient.readContract({
     address: USDC.address,
     abi: erc20Abi,
@@ -39,11 +46,24 @@ async function ensurePayerFunded(): Promise<void> {
   }
 }
 
-let inFlight = false;
+// Refills stay strictly serialized even while purchases overlap: two concurrent
+// transfers from the agent would collide on its nonce and double-spend the float.
+async function ensurePayerFunded(): Promise<void> {
+  if (refillInFlight) return refillInFlight;
+  const p = refill();
+  refillInFlight = p;
+  try {
+    await p;
+  } finally {
+    refillInFlight = null;
+  }
+}
+
+let active = 0;
 
 async function buyOnce(): Promise<void> {
-  if (inFlight) return; // timer ticks must never overlap (double-refill race)
-  inFlight = true;
+  if (active >= CONCURRENCY) return; // shed ticks rather than queue unboundedly
+  active += 1;
   try {
     await ensurePayerFunded();
     // Buy through the public URL: the purchase is real inbound traffic, which
@@ -80,7 +100,7 @@ async function buyOnce(): Promise<void> {
   } catch (e) {
     console.warn("[selfbuy] error:", e instanceof Error ? e.message : e);
   } finally {
-    inFlight = false;
+    active -= 1;
   }
 }
 
@@ -101,7 +121,9 @@ export function startSelfBuy(): void {
   payerAddress = account.address;
   const client = new x402Client().register(NETWORK, new ExactEvmScheme(account));
   payFetch = wrapFetchWithPayment(fetch, client);
-  console.log(`[selfbuy] live: payer ${payerAddress}, every ${INTERVAL_SEC}s`);
+  console.log(
+    `[selfbuy] live: payer ${payerAddress}, every ${INTERVAL_SEC}s, up to ${CONCURRENCY} in flight`,
+  );
   setInterval(() => void buyOnce(), INTERVAL_SEC * 1000);
   setTimeout(() => void buyOnce(), 15_000);
 }

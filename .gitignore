@@ -18,3 +18,9 @@ data/
 
 # operational tooling (local only)
 scripts/askbots-submit.mjs
+scripts/engine-watchdog.ps1
+scripts/engine-keepalive.ps1
+watchdog.log
+engine.err.log
+
+.vercel

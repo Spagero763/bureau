@@ -32,16 +32,36 @@ const CONCURRENCY = Math.max(1, Number(process.env.SELF_BUY_CONCURRENCY ?? "1"))
 
 let refillInFlight: Promise<void> | null = null;
 
-async function refill(): Promise<void> {
+// Reading the payer's balance before every purchase gets the public RPC to rate
+// limit us once purchases overlap, and a dropped read stalls the loop. Track the
+// balance locally instead, spending it down per call and re-reading only
+// occasionally or when it looks low enough to matter.
+const PRICE_USD = Number(process.env.PRICE_LOOKUP ?? "10000") / 1e6;
+const RESYNC_EVERY = 50;
+let cachedUsd: number | null = null;
+let sinceResync = 0;
+
+async function readPayerUsd(): Promise<number> {
   const bal = await publicClient.readContract({
     address: USDC.address,
     abi: erc20Abi,
     functionName: "balanceOf",
     args: [payerAddress as `0x${string}`],
   });
-  if (Number(bal) / 1e6 < REFILL_BELOW_USD) {
+  sinceResync = 0;
+  return Number(bal) / 1e6;
+}
+
+async function refill(): Promise<void> {
+  // Trust the local figure until it approaches the threshold, then confirm
+  // against the chain so a refill is never sent on a stale estimate.
+  if (cachedUsd === null || sinceResync >= RESYNC_EVERY || cachedUsd < REFILL_BELOW_USD * 2) {
+    cachedUsd = await readPayerUsd();
+  }
+  if (cachedUsd < REFILL_BELOW_USD) {
     const amount = BigInt(Math.round(REFILL_AMOUNT_USD * 1e6));
     await sendUsdc(payerAddress, amount); // tagged transfer from the agent
+    cachedUsd += REFILL_AMOUNT_USD;
     console.log(`[selfbuy] refilled payer with $${REFILL_AMOUNT_USD}`);
   }
 }
@@ -83,6 +103,8 @@ async function buyOnce(): Promise<void> {
     let res = await payFetch!(url);
     if (res.ok) {
       recordSelfBuy();
+      if (cachedUsd !== null) cachedUsd -= PRICE_USD; // spend down the local figure
+      sinceResync += 1;
     } else if (res.status === 402) {
       // Payment could not settle: almost always exhausted facilitator credits.
       // Auto-top-up (hard daily-capped) and retry once so the loop self-heals.

@@ -52,7 +52,7 @@ let refuelChecked = 0;
 /**
  * Keep a small native-CELO gas tank topped up from USDm, so normal trades can
  * pay gas in CELO (reliable, no fee-currency/trading collision). This one
- * refuel swap pays ITS gas in USDm — safe because it spends only ~$2 USDm,
+ * refuel swap pays ITS gas in USDm, safe because it spends only ~$2 USDm,
  * leaving plenty of USDm balance to satisfy the fee-currency allowance check.
  * Returns true if it performed a refuel (and the caller should skip trading).
  */

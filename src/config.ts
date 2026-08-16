@@ -32,10 +32,10 @@ export const config = {
   agentAddress: req("AGENT_ADDRESS"),
   agentPrivateKey: process.env.AGENT_PRIVATE_KEY ?? "",
   publicBaseUrl: (process.env.PUBLIC_BASE_URL ?? "http://localhost:3000").replace(/\/$/, ""),
-  agentName: process.env.AGENT_NAME ?? "Kiosk",
+  agentName: process.env.AGENT_NAME ?? "Bureau",
   agentDescription:
     process.env.AGENT_DESCRIPTION ??
-    "Autonomous storefront agent on Celo. Pay-per-call market data, onchain lookups, and stake-to-play arcade games, settled in USDC via x402.",
+    "Autonomous FX desk on Celo. Trades Mento stablecoins against real-world rates and sells its market data per call over x402, settled in USDC.",
   agentImageUrl: process.env.AGENT_IMAGE_URL ?? "",
   facilitatorUrl: (process.env.X402_FACILITATOR_URL ?? "https://api.x402.celo.org").replace(/\/$/, ""),
   x402ApiKey: process.env.X402_API_KEY ?? "",

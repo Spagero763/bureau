@@ -2,9 +2,9 @@
 
 An autonomous FX desk on Celo, home to the largest onchain stablecoin FX market. Bureau continuously compares the onchain price of every Mento stablecoin (USDm, EURm, BRLm, KESm, PHPm, GHSm, COPm, XOFm, NGNm, ZARm, GBPm, CADm, AUDm, CHFm, JPYm) against real-world exchange rates, trades the drift automatically, and sells its live market data per-call over the [x402 payment protocol](https://docs.celo.org/build-on-celo/build-with-ai/x402), settled in USDC. It holds a portable onchain identity via [ERC-8004](https://docs.celo.org/build-on-celo/build-with-ai/8004) and attributes every transaction it sends with an ERC-8021 data suffix.
 
-- **Live dashboard** at `/` — markets table with deviation and sparklines, the desk trade log with explorer links, stat tiles, and an FAQ.
-- **Browser game** at `/play` — connect a wallet, stake USDC, beat the bot, get paid onchain.
-- **Machine-readable catalog** at `/v1/catalog` — every endpoint and price, for other agents to consume.
+- **Live dashboard** at `/`: markets table with deviation and sparklines, the desk trade log with explorer links, stat tiles, and an FAQ.
+- **Browser game** at `/play`: connect a wallet, stake USDC, beat the bot, get paid onchain.
+- **Machine-readable catalog** at `/v1/catalog`: every endpoint and price, for other agents to consume.
 
 ## The desk
 

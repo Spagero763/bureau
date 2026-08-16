@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Express, Request, Response } from "express";
 import { config, NETWORK, USDC, usd, ERC8004 } from "../config.js";
+import { heartbeat } from "../lib/health.js";
 
 function catalog() {
   const p = config.prices;
@@ -41,7 +42,12 @@ function catalog() {
 }
 
 export function registerCatalogRoutes(app: Express) {
-  app.get("/healthz", (_req: Request, res: Response) => res.json({ ok: true }));
+  // Names the service so a stranger on this port cannot pass as Bureau, and
+  // 503s when the desk has stopped settling.
+  app.get("/healthz", (_req: Request, res: Response) => {
+    const report = heartbeat.report();
+    res.status(report.ok ? 200 : 503).json(report);
+  });
 
   // Dashboard for humans; machine catalog stays at /v1/catalog.
   let dashboardHtml: string | null = null;

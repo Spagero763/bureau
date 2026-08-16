@@ -1,0 +1,41 @@
+{
+  "name": "celo-agent-kit",
+  "version": "0.1.0",
+  "license": "MIT",
+  "description": "Operational toolkit for autonomous agents on Celo: x402 selling, self-funding treasury, attribution, and liveness that does not lie",
+  "keywords": ["celo", "x402", "agent", "erc-8021", "erc-8004", "autonomous", "stablecoin", "micropayments"],
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "README.md", "LICENSE"],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Spagero763/bureau.git",
+    "directory": "packages/celo-agent-kit"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prepublishOnly": "npm run build"
+  },
+  "peerDependencies": {
+    "@x402/core": "^2.18.0",
+    "@x402/evm": "^2.18.0",
+    "@x402/express": "^2.18.0",
+    "express": "^4.19.2",
+    "viem": "^2.21.26"
+  },
+  "dependencies": {
+    "@celo/attribution-tags": "^0.3.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.5.0",
+    "typescript": "^5.6.2"
+  }
+}
